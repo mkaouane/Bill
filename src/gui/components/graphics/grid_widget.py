@@ -12,21 +12,22 @@ from PyQt6.QtWidgets import QApplication, QWidget
 
 from src.core.signals.grid_signals import GridSignals
 from src.core.signals.world_signals import MapSignals
+from src.gui import theme
 from src.gui.utils.profiling import profiled_slot
 
-CELL_BORDER_COLOR = QColor("#A9A9A9")
+CELL_BORDER_COLOR = QColor("#4A3E31")
 CIRCLE_CELL_SIZE = 15
 
-_MOVABLE_COLOR = QColor(Qt.GlobalColor.lightGray)
-_BLOCK_COLOR = QColor(Qt.GlobalColor.darkGray)
-_EMPTY_COLOR = QColor(Qt.GlobalColor.black)
-_DEFAULT_COLOR = QColor(Qt.GlobalColor.white)
-_ACTOR_COLOR = QColor(Qt.GlobalColor.red)
-_STATED_COLOR = QColor(Qt.GlobalColor.green)
-_STATED_DOWN_COLOR = QColor(144, 238, 144)
-_PATH_START_COLOR = QColor(Qt.GlobalColor.white)
-_PATH_END_COLOR = QColor(Qt.GlobalColor.red)
-_PATH_TREATED_COLOR = QColor(Qt.GlobalColor.green)
+_MOVABLE_COLOR = QColor("#C9BBA0")
+_BLOCK_COLOR = QColor("#6B5E4C")
+_EMPTY_COLOR = theme.BACKGROUND
+_DEFAULT_COLOR = QColor("#3A3127")
+_ACTOR_COLOR = theme.ERROR
+_STATED_COLOR = theme.ACCENT
+_STATED_DOWN_COLOR = QColor("#4F6B33")
+_PATH_START_COLOR = theme.GOLD
+_PATH_END_COLOR = theme.ERROR
+_PATH_TREATED_COLOR = theme.ACCENT
 
 _CELL_POINTS = tuple(
     (cell_id, point.pixel_coord, (point.x, point.y)) for cell_id, point in MAP_POINT_BY_CELL_ID.items()

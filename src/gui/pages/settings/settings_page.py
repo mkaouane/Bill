@@ -1,6 +1,8 @@
 from PyQt6.QtCore import pyqtSignal
 from PyQt6.QtWidgets import QScrollArea, QStackedWidget, QVBoxLayout, QWidget
-from qfluentwidgets import SegmentedWidget, SubtitleLabel
+from qfluentwidgets import BodyLabel, SegmentedWidget, SimpleCardWidget, TitleLabel
+
+from src.gui import theme
 
 from src.gui.pages.settings.assignment_panel import AssignmentSettingsPanel
 from src.gui.pages.settings.behavior_panel import BehaviorSettingsPanel
@@ -19,11 +21,19 @@ class SettingsPage(QWidget):
         self.setObjectName("settings")
         layout = QVBoxLayout(self)
         layout.setContentsMargins(24, 24, 24, 24)
-        layout.addWidget(SubtitleLabel("Settings", self))
+        layout.setSpacing(12)
+        layout.addWidget(TitleLabel("Settings", self))
+        description = BodyLabel("Configure behaviors, accounts, schedules and services.", self)
+        theme.set_label_color(description, theme.TEXT_MUTED)
+        layout.addWidget(description)
         self.navigation = SegmentedWidget(self)
         layout.addWidget(self.navigation)
-        self.stack = QStackedWidget(self)
-        layout.addWidget(self.stack)
+        card = SimpleCardWidget(self)
+        card_layout = QVBoxLayout(card)
+        card_layout.setContentsMargins(12, 12, 12, 12)
+        self.stack = QStackedWidget(card)
+        card_layout.addWidget(self.stack)
+        layout.addWidget(card, 1)
         self.behaviors = BehaviorSettingsPanel()
         self.mail = MailSettingsPanel()
         self.proxies = ProxySettingsPanel()

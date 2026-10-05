@@ -32,6 +32,7 @@ from src.core.behaviors.farms.fight.fight_movement_behavior import (
 )
 from src.core.behaviors.farms.fight.fight_spell_behavior import FightSpellBehavior
 from src.core.behaviors.farms.fight.fight_turn_behavior import FightTurnBehavior
+from src.core.behaviors.farms.fight.lua_fight_script_behavior import LuaFightScriptBehavior
 from src.core.behaviors.movements.map_move_behavior import MapMoveBehavior, MapMoveError
 from src.core.bot.bot import Bot
 from src.core.engine.contexts import AttackContext
@@ -357,6 +358,13 @@ class TestFightActionAcknowledgement:
             game_state=game_state_ctx.game_state,
             fight_movement_behavior=fight_movement_behavior,
             fight_spell_behavior=fight_spell_behavior,
+            lua_fight_script_behavior=LuaFightScriptBehavior(
+                event_manager=event_manager,
+                game_state=game_state_ctx.game_state,
+                fight_movement_behavior=fight_movement_behavior,
+                fight_spell_behavior=fight_spell_behavior,
+                _logger=game_state_ctx.logger,
+            ),
             attack_selector=game_state_ctx.attacker,
             breed_ability_selector=game_state_ctx.breed_ability_selector,
             _logger=game_state_ctx.logger,
@@ -412,6 +420,13 @@ class TestFightActionAcknowledgement:
             game_state=game_state_ctx.game_state,
             fight_movement_behavior=fight_movement_behavior,
             fight_spell_behavior=fight_spell_behavior,
+            lua_fight_script_behavior=LuaFightScriptBehavior(
+                event_manager=event_manager,
+                game_state=game_state_ctx.game_state,
+                fight_movement_behavior=fight_movement_behavior,
+                fight_spell_behavior=fight_spell_behavior,
+                _logger=game_state_ctx.logger,
+            ),
             attack_selector=game_state_ctx.attacker,
             breed_ability_selector=game_state_ctx.breed_ability_selector,
             _logger=game_state_ctx.logger,
@@ -452,6 +467,13 @@ class TestFightActionAcknowledgement:
             game_state=game_state_ctx.game_state,
             fight_movement_behavior=fight_movement_behavior,
             fight_spell_behavior=fight_spell_behavior,
+            lua_fight_script_behavior=LuaFightScriptBehavior(
+                event_manager=event_manager,
+                game_state=game_state_ctx.game_state,
+                fight_movement_behavior=fight_movement_behavior,
+                fight_spell_behavior=fight_spell_behavior,
+                _logger=game_state_ctx.logger,
+            ),
             attack_selector=game_state_ctx.attacker,
             breed_ability_selector=game_state_ctx.breed_ability_selector,
             _logger=game_state_ctx.logger,
@@ -502,6 +524,13 @@ class TestFightActionAcknowledgement:
             game_state=game_state_ctx.game_state,
             fight_movement_behavior=fight_movement_behavior,
             fight_spell_behavior=fight_spell_behavior,
+            lua_fight_script_behavior=LuaFightScriptBehavior(
+                event_manager=event_manager,
+                game_state=game_state_ctx.game_state,
+                fight_movement_behavior=fight_movement_behavior,
+                fight_spell_behavior=fight_spell_behavior,
+                _logger=game_state_ctx.logger,
+            ),
             attack_selector=game_state_ctx.attacker,
             breed_ability_selector=game_state_ctx.breed_ability_selector,
             _logger=game_state_ctx.logger,

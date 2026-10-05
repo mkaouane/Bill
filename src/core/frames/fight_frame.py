@@ -1,7 +1,16 @@
 from dataclasses import dataclass
 
+from DBDofusUnity.datas.protos.non_obf.game.challenge_pb2 import (
+    ChallengeAddEvent,
+    ChallengeListEvent,
+    ChallengeProposalEvent,
+    ChallengeResultEvent,
+    ChallengeSelectedEvent,
+    ChallengeTargetsEvent,
+)
 from DBDofusUnity.datas.protos.non_obf.game.character_pb2 import CharacterCharacteristicsEvent
 from DBDofusUnity.datas.protos.non_obf.game.common_pb2 import (
+    Challenge,
     FightInvisibilityState,
 )
 from DBDofusUnity.datas.protos.non_obf.game.context_pb2 import ContextCreationEvent
@@ -112,6 +121,24 @@ class FightFrame(Frame):
             self.on_context_creation_event,
             originator=self,
             priority=self.priority,
+        )
+        self.event_manager.on(
+            ChallengeProposalEvent, self.on_challenge_proposal_event, originator=self, priority=self.priority
+        )
+        self.event_manager.on(
+            ChallengeSelectedEvent, self.on_challenge_selected_event, originator=self, priority=self.priority
+        )
+        self.event_manager.on(
+            ChallengeListEvent, self.on_challenge_list_event, originator=self, priority=self.priority
+        )
+        self.event_manager.on(
+            ChallengeAddEvent, self.on_challenge_add_event, originator=self, priority=self.priority
+        )
+        self.event_manager.on(
+            ChallengeTargetsEvent, self.on_challenge_targets_event, originator=self, priority=self.priority
+        )
+        self.event_manager.on(
+            ChallengeResultEvent, self.on_challenge_result_event, originator=self, priority=self.priority
         )
 
     def on_context_creation_event(self, msg: ContextCreationEvent):
@@ -307,7 +334,51 @@ class FightFrame(Frame):
         self.game_state.fight.count_casted_by_spell_id_on_current_turn.clear()
         self.game_state.fight.cast_turn_by_spell_id.clear()
         self.game_state.fight.modifier_by_type_and_spell_id.clear()
+        self.game_state.fight.reset_challenges()
+        self.game_state.fight.fight_start_turn = self.game_state.fight.fight_turn
         self.logger.debug("Fight start: cleared per-fight cooldown/cast tracking")
+
+    def on_challenge_proposal_event(self, msg: ChallengeProposalEvent) -> None:
+        self.game_state.fight.challenge_proposals = list(msg.challenge_proposals)
+
+    def on_challenge_selected_event(self, msg: ChallengeSelectedEvent) -> None:
+        challenge_id = msg.challenge.challenge_id
+        if challenge_id not in self.game_state.fight.selected_challenge_ids:
+            self.game_state.fight.selected_challenge_ids.append(challenge_id)
+        self.game_state.fight.challenge_proposals = [
+            proposal
+            for proposal in self.game_state.fight.challenge_proposals
+            if proposal.challenge_id != challenge_id
+        ]
+        if challenge_id in self.game_state.fight.challenge_by_id:
+            return
+        # A just-selected challenge cannot be over yet, but proto3 defaults its state to COMPLETED.
+        challenge = Challenge()
+        challenge.CopyFrom(msg.challenge)
+        challenge.state = Challenge.CHALLENGE_RUNNING
+        self._store_challenge(challenge)
+
+    def on_challenge_list_event(self, msg: ChallengeListEvent) -> None:
+        self.game_state.fight.challenge_by_id.clear()
+        for challenge in msg.challenges:
+            self._store_challenge(challenge)
+
+    def on_challenge_add_event(self, msg: ChallengeAddEvent) -> None:
+        self._store_challenge(msg.challenge)
+
+    def on_challenge_targets_event(self, msg: ChallengeTargetsEvent) -> None:
+        self._store_challenge(msg.challenge)
+
+    def on_challenge_result_event(self, msg: ChallengeResultEvent) -> None:
+        challenge = Challenge(challenge_id=msg.challenge_id)
+        known_challenge = self.game_state.fight.challenge_by_id.get(msg.challenge_id)
+        if known_challenge is not None:
+            challenge.CopyFrom(known_challenge)
+        challenge.state = Challenge.CHALLENGE_COMPLETED if msg.success else Challenge.CHALLENGE_FAILED
+        self._store_challenge(challenge)
+
+    def _store_challenge(self, challenge: Challenge) -> None:
+        self.game_state.fight.challenge_by_id[challenge.challenge_id] = challenge
 
     def on_fight_turn_event(self, msg: FightTurnEvent):
         self.game_state.fight.fight_placement_possible_positions.clear()

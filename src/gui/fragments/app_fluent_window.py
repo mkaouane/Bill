@@ -13,6 +13,7 @@ from src.gui.components.qfluent_widget.no_animated_stacked_widget import (
     NoAnimatedStackedWidget,
 )
 from src.gui.fragments.sidebar import Sidebar
+from src.gui.theme import apply_window_theme
 
 
 class AppFluentWindow(FluentWindowBase):
@@ -21,6 +22,7 @@ class AppFluentWindow(FluentWindowBase):
 
         self.stackedWidget = NoAnimatedStackedWidget()
         FluentStyleSheet.FLUENT_WINDOW.apply(self.stackedWidget)
+        apply_window_theme(self, self.stackedWidget)
 
         self.setTitleBar(FluentTitleBar(self))
 

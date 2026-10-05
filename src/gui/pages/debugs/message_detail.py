@@ -15,6 +15,7 @@ from qfluentwidgets import (
 )
 from qfluentwidgets.components.widgets.tool_tip import ToolTipFilter
 
+from src.gui import theme
 from src.gui.components.qfluent_widget.dynamic_tree_widget import DynamicTreeWidget
 from utils.protobuf import is_repeated_field
 
@@ -297,7 +298,9 @@ class MessageDetailWidget(QWidget):
         self._find_matching_items(root, search_text, found_items)
 
         for item in found_items:
-            item.setBackground(0, QBrush(QColor(255, 255, 0, 100)))
+            highlight = QColor(theme.GOLD)
+            highlight.setAlpha(90)
+            item.setBackground(0, QBrush(highlight))
             self._expand_to_item(item)
 
     def _find_matching_items(

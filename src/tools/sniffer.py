@@ -7,9 +7,7 @@ from pathlib import Path
 from threading import Thread
 
 from dotenv import load_dotenv
-from PyQt6.QtCore import Qt
 from PyQt6.QtWidgets import QApplication
-from qfluentwidgets import Theme, setTheme, setThemeColor
 from scapy.layers.inet import IP
 from scapy.layers.inet6 import IPv6
 from scapy.packet import Packet, Raw
@@ -34,6 +32,7 @@ from src.core.bot.bot_factory import generate_random_bot
 from src.core.signals.message_signals import MessageInfoSignals
 from src.gui.consts import BASE_HEIGHT, BASE_WIDTH
 from src.gui.pages.debugs.sniffer import SnifferWidget
+from src.gui.theme import apply_application_theme
 from src.protocol.protocol import decode_varint_size
 from src.protocol.protocol_connection import (
     get_conn_msg,
@@ -128,8 +127,7 @@ def main() -> None:
     sniffer_widget = SnifferWidget(bot, global_signals, use_recorder_feed=False)
     sniffer_widget.resize(BASE_WIDTH, BASE_HEIGHT)
     sniffer_widget.show()
-    setTheme(Theme.DARK)
-    setThemeColor(Qt.GlobalColor.yellow)
+    apply_application_theme()
     app.exec()
 
 

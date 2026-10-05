@@ -6,8 +6,9 @@ from typing import Literal, cast
 from ankama_launcher_emulator.controller.bot_storage import (
     BotStorageController,
 )
-from PyQt6.QtCore import QSize, Qt, QTimer, QUrl
-from PyQt6.QtGui import QCloseEvent, QColor, QIcon, QPixmap, QResizeEvent
+from PyQt6.QtCore import QEvent, QSize, Qt, QTimer, QUrl
+from PyQt6.QtGui import QCloseEvent, QIcon, QPixmap, QResizeEvent
+from PyQt6.QtWidgets import QSystemTrayIcon
 from PyQt6.QtNetwork import QNetworkAccessManager, QNetworkReply, QNetworkRequest
 from qfluentwidgets import (
     CaptionLabel,
@@ -24,6 +25,7 @@ from src.core.bot.bot import Bot
 from src.core.signals.log_signals import LogSignals
 from src.core.signals.shared_farm_signals import SharedSignals
 from src.gui.components.manual_confirmation import ManualConfirmationDialogs
+from src.gui.components.tray_icon import TrayIcon
 from src.gui.consts import BASE_HEIGHT, BASE_WIDTH
 from src.gui.fragments.account_quick_info import AccountQuickInfoWidget
 from src.gui.fragments.account_stacked_widget import AccountStackedWidget
@@ -31,6 +33,7 @@ from src.gui.fragments.app_fluent_window import AppFluentWindow
 from src.gui.fragments.sidebar_item import SidebarItem
 from src.gui.pages.activity import ActivityPage
 from src.gui.pages.settings.settings_page import SettingsPage
+from src.gui import theme
 from src.services.background import run_in_background
 from src.services.logging_utils.loggers import init_root_gui_logging
 
@@ -84,8 +87,8 @@ class MainWindow(AppFluentWindow):
         self.splashScreen = StartupSplashScreen(self.windowIcon(), self)
         self.splashScreen.setIconSize(QSize(102, 102))
 
-        self.disconnected_icon = FluentIcon.PEOPLE.icon(color=QColor(255, 0, 0))
-        self.connected_icon = FluentIcon.PEOPLE.icon(color=QColor(0, 255, 0))
+        self.disconnected_icon = FluentIcon.PEOPLE.icon(color=theme.ERROR)
+        self.connected_icon = FluentIcon.PEOPLE.icon(color=theme.SUCCESS)
         self._breed_icon_network_manager = QNetworkAccessManager(self)
         self._breed_icon_by_id: dict[int, QIcon] = {}
 
@@ -122,6 +125,10 @@ class MainWindow(AppFluentWindow):
         )
         self.settings_page.schedules_changed.connect(self._refresh_schedules)
         self.confirmation_dialogs = ManualConfirmationDialogs(self)
+        self.tray_icon: TrayIcon | None = None
+        if QSystemTrayIcon.isSystemTrayAvailable():
+            self.tray_icon = TrayIcon(self)
+            self.tray_icon.show()
 
     def _refresh_schedules(self) -> None:
         if not BotConfigService.use_bot_config_json:
@@ -361,6 +368,17 @@ class MainWindow(AppFluentWindow):
             return
         bot.scheduler.disconnect_now()
 
+    def changeEvent(self, a0: QEvent | None) -> None:
+        super().changeEvent(a0)
+        if (
+            a0 is not None
+            and a0.type() == QEvent.Type.WindowStateChange
+            and self.isMinimized()
+            and self.tray_icon is not None
+        ):
+            # Hiding inside the state-change event fights the minimize animation; defer it.
+            QTimer.singleShot(0, self.hide)
+
     def closeEvent(self, a0: QCloseEvent | None) -> None:
         if self._shutdown_finished:
             super().closeEvent(a0)
@@ -378,4 +396,6 @@ class MainWindow(AppFluentWindow):
 
     def complete_shutdown(self) -> None:
         self._shutdown_finished = True
+        if self.tray_icon is not None:
+            self.tray_icon.hide()
         self.close()

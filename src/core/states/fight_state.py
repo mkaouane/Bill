@@ -5,6 +5,7 @@ from dataclasses import dataclass, field
 
 from DBDofusUnity.datas.protos.non_obf.game.common_pb2 import (
     ActorPositionInformation,
+    Challenge,
     CharacterCharacteristic,
     SpellModifier,
     SpellModifierType,
@@ -56,6 +57,10 @@ class FightState(State):
     _life_point: int = dataclasses.field(init=False, default=1)
     _max_life_point: int = dataclasses.field(init=False, default=1)
     invisible_enemy_cell_ids: set[int] = dataclasses.field(init=False, default_factory=set[int])
+    challenge_by_id: dict[int, Challenge] = dataclasses.field(init=False, default_factory=dict[int, Challenge])
+    challenge_proposals: list[Challenge] = dataclasses.field(init=False, default_factory=list[Challenge])
+    selected_challenge_ids: list[int] = dataclasses.field(init=False, default_factory=list[int])
+    fight_start_turn: int = dataclasses.field(init=False, default=0)
 
     def clear_state(self):
         self.fight_placement_possible_positions.clear()
@@ -69,6 +74,16 @@ class FightState(State):
         self.in_fight = False
         self.fight_turn = 0
         self.invisible_enemy_cell_ids.clear()
+        self.reset_challenges()
+
+    def reset_challenges(self) -> None:
+        self.challenge_by_id.clear()
+        self.challenge_proposals.clear()
+        self.selected_challenge_ids.clear()
+
+    @property
+    def turn_in_current_fight(self) -> int:
+        return self.fight_turn - self.fight_start_turn
 
     def add_invisible_enemy_cell(self, cell_id: int) -> None:
         self.invisible_enemy_cell_ids.add(cell_id)

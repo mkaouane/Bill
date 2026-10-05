@@ -11,17 +11,23 @@ from DBDofusUnity.dofus_unity_reader.grid.map_point import MapPoint
 
 from src.core.behaviors.behavior import Behavior
 from src.core.behaviors.farms.fight.fight_movement_behavior import FightMovementBehavior
+from src.core.behaviors.farms.fight.lua_fight_script_behavior import LuaFightScriptBehavior
 from src.core.config import (
     PLACEMENT_NON_OPTIMAL_MOVE_PROBABILITY,
     PLACEMENT_REPOSITIONING_PROBABILITY,
 )
+from src.core.engine.lua_fight.api import to_int
+from src.core.engine.lua_fight.script import LuaFightScript
 from src.services.human_timings import HumanTimingsService
 
 
 @dataclass
 class FightPreparationBehavior(Behavior):
     fight_movement_behavior: FightMovementBehavior
+    lua_fight_script_behavior: LuaFightScriptBehavior
+    fight_script: LuaFightScript | None = field(init=False, default=None)
 
+    _script_cell_id: int | None = field(init=False, default=None)
     _has_repositioned: bool = field(init=False, default=False)
     _has_done_non_optimal_move: bool = field(init=False, default=False)
     _should_do_non_optimal_move: bool = field(init=False, default=False)
@@ -32,10 +38,37 @@ class FightPreparationBehavior(Behavior):
         self._has_done_non_optimal_move = False
         self._has_returned_to_optimal = False
         self._should_do_non_optimal_move = random.random() < PLACEMENT_NON_OPTIMAL_MOVE_PROBABILITY
+        self._script_cell_id = None
         self.event_manager.on(FightReadyRequest, lambda _: self.finish(), originator=self, once=True)
+        script = self.fight_script
+        if script is not None and script.has_placement():
+            possible_cell_ids = list(self.game_state.fight.fight_placement_possible_positions)
+            available_cell_ids = [
+                cell_id
+                for cell_id in possible_cell_ids
+                if cell_id == self.game_state.map.map_point.cell_id
+                or not self.game_state.entity.actors_on_mp.is_entity_actor_on_cell_id(cell_id)
+            ]
+            return self.lua_fight_script_behavior.start(
+                callback=self._on_script_placement_finished,
+                parent=self,
+                start=lambda: script.start_placement(possible_cell_ids, available_cell_ids),
+            )
+        self.position_player()
+
+    def _on_script_placement_finished(self, error_code: str | None, values: tuple[object, ...]) -> None:
+        cell_id = to_int(values[0]) if values else None
+        if error_code is None and cell_id in self.game_state.fight.fight_placement_possible_positions:
+            self.logger.info(f"Fight script placement: cell {cell_id}")
+            self._script_cell_id = cell_id
+        else:
+            self.logger.info(f"Fight script gave no valid placement ({error_code}), using built-in placement")
         self.position_player()
 
     def position_player(self) -> None:
+        if self._script_cell_id is not None:
+            return self._move_to_placement_cell(self._script_cell_id)
+
         near_possible_cell_id = self.get_near_placement_cell_id()
         self.logger.info(f"found near cell id to enemy : {near_possible_cell_id}")
 
@@ -47,9 +80,12 @@ class FightPreparationBehavior(Behavior):
                 self.send_fight_placement_position(non_optimal_cell)
                 return
 
-        if self.game_state.map.map_point.cell_id != near_possible_cell_id:
-            self.logger.info(f"Moving to {near_possible_cell_id}")
-            self.send_fight_placement_position(near_possible_cell_id)
+        self._move_to_placement_cell(near_possible_cell_id)
+
+    def _move_to_placement_cell(self, cell_id: int) -> None:
+        if self.game_state.map.map_point.cell_id != cell_id:
+            self.logger.info(f"Moving to {cell_id}")
+            self.send_fight_placement_position(cell_id)
         else:
             self.on_player_placement_done()
 
@@ -58,6 +94,7 @@ class FightPreparationBehavior(Behavior):
             if cell_id == self.game_state.map.map_point.cell_id:
                 return self.on_player_placement_done()
             self.logger.info("Cell id is occupied, try an other cell.")
+            self._script_cell_id = None
             return self.position_player()
 
         self.event_manager.on(
@@ -86,6 +123,7 @@ class FightPreparationBehavior(Behavior):
                 disposition.entity_id,
                 disposition.carrying_character_id,
             ]:
+                self._script_cell_id = None
                 return self.position_player()
 
             self.on_player_placement_done()
@@ -99,7 +137,11 @@ class FightPreparationBehavior(Behavior):
                 self.position_player,
             )
 
-        if not self._has_repositioned and random.random() < PLACEMENT_REPOSITIONING_PROBABILITY:
+        if (
+            self._script_cell_id is None
+            and not self._has_repositioned
+            and random.random() < PLACEMENT_REPOSITIONING_PROBABILITY
+        ):
             self._has_repositioned = True
             self.logger.debug("Hesitating, repositioning...")
             return self.run_timer(

@@ -16,6 +16,8 @@ from src.core import config
 from src.core.behaviors.behavior_factory import USABLE_BEHAVIORS
 from src.core.bot.bot import Bot
 from src.gui.pages.farmer.bank_tab import BankTab
+from src.gui.pages.farmer.character_picker import CharacterPicker
+from src.gui.pages.farmer.fight_script_picker import FightScriptPicker
 from src.gui.pages.farmer.inventory_tab import InventoryTab
 from src.gui.pages.farmer.map_tab import MapTab
 from src.gui.pages.farmer.player_tab import PlayerTab
@@ -113,6 +115,8 @@ class FarmerWidget(QWidget):
         top_widget_layout.addWidget(self.sub_area_farm_combo)
 
         self._v_layout.addWidget(top_widget)
+        self._v_layout.addWidget(CharacterPicker(self.login, self))
+        self._v_layout.addWidget(FightScriptPicker(self.login, self))
 
         self.on_type_action_changed()
 

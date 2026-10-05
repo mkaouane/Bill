@@ -21,6 +21,8 @@ class PlayerState(State):
     game_info_signals: GameInfoSignals
     login: str
     bak_token: str | None = dataclasses.field(init=False, default=None)
+    # Chosen at login from the account's server list, then used when the game server lists characters.
+    character_name_to_select: str | None = dataclasses.field(init=False, default=None)
     _server_id: int = dataclasses.field(init=False, default=ServerEnum.BRIAL.value)
     is_ready_to_play_event: Event = dataclasses.field(init=False)
     is_characteristic_upgrade_complete_event: Event = dataclasses.field(init=False)

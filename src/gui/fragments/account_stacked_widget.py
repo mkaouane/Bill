@@ -33,6 +33,8 @@ class AccountStackedWidget(QWidget):
         self.global_log_signals = global_log_signals
         self.setObjectName(f"{login}_bot")
         layout = QVBoxLayout()
+        layout.setContentsMargins(16, 16, 16, 16)
+        layout.setSpacing(12)
         self.setLayout(layout)
 
         self.pivot = SegmentedWidget(self)

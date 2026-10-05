@@ -43,6 +43,7 @@ from DBDofusUnity.datas.protos.non_obf.game.gamemap_pb2 import FightMapInformati
 
 from src.controller.bot_config import BotConfigService
 from src.core.behaviors.behavior import Behavior
+from src.core.engine.lua_fight.storage import fight_script_selects_challenges
 from src.services.human_timings import HumanTimingsService
 
 # Schnorr group: BouncyCastle rfc2409_768 with g=2 and q=(p-1)/2.
@@ -197,6 +198,9 @@ class GameSessionBehavior(Behavior):
             self.logger.warning(
                 "ChallengeProposalEvent received without proposals; leaving challenge selection to the server"
             )
+            return
+        if fight_script_selects_challenges(self.game_state.player.login):
+            self.logger.info("Challenge selection left to the fight script")
             return
         challenge_id = msg.challenge_proposals[0].challenge_id
         self.run_timer(

@@ -1,12 +1,12 @@
 import logging
 import threading
 from collections.abc import Callable
-from PyQt6.QtCore import QTimer, Qt
+from PyQt6.QtCore import QTimer
 from PyQt6.QtWidgets import QMessageBox
-from qfluentwidgets import Theme, setTheme, setThemeColor
 
 from src.gui.application import Application
 from src.gui.main_window import MainWindow
+from src.gui.theme import apply_application_theme
 from src.core.bot.bot_manager import BotManager
 from src.core.bot.lifecycle.scheduler import run_continuously
 from src.core.signals.shared_farm_signals import SharedSignals
@@ -44,8 +44,7 @@ def run_gui(application_argv: list[str], enable_automatic_schedules: bool) -> in
     shared_signals = SharedSignals()
     main_window = MainWindow(title=application.TITLE, shared_signals=shared_signals)
     main_window.show()
-    setTheme(Theme.DARK)
-    setThemeColor(Qt.GlobalColor.yellow)
+    apply_application_theme()
     main_window.set_startup_status("Loading bots…")
 
     bot_manager: BotManager | None = None

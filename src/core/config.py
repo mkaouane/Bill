@@ -2,7 +2,9 @@ import datetime
 from random import uniform
 
 from dotenv import load_dotenv
-from pydantic import BaseModel, ConfigDict
+from typing import Self
+
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from DBDofusUnity.dofus_unity_reader.game_constants.job import JobEnum
 from DBDofusUnity.dofus_unity_reader.game_constants.map_id import MapIdEnum
@@ -14,6 +16,9 @@ DEBUG = get_bool_from_env("DEBUG", default=True)
 ENABLE_MSG_CAPTURE = not IS_PACKAGED
 
 ENABLE_SESSION_CONTEXT = False
+
+
+MAX_MONSTER_GROUP_SIZE = 8
 
 
 class BehaviorSettings(BaseModel):
@@ -28,6 +33,14 @@ class BehaviorSettings(BaseModel):
     enable_auto_equipment_market_purchases: bool = False
     enable_auto_ogrine_subscriptions: bool = False
     enable_auto_paysafecard_subscriptions: bool = False
+    fight_group_min_size: int = Field(default=1, ge=1, le=MAX_MONSTER_GROUP_SIZE)
+    fight_group_max_size: int = Field(default=MAX_MONSTER_GROUP_SIZE, ge=1, le=MAX_MONSTER_GROUP_SIZE)
+
+    @model_validator(mode="after")
+    def check_fight_group_size_range(self) -> Self:
+        if self.fight_group_min_size > self.fight_group_max_size:
+            raise ValueError("The minimum monster group size cannot exceed the maximum.")
+        return self
 
 
 class GlobalSettings(BaseModel):

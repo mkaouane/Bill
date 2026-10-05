@@ -46,6 +46,7 @@ from qfluentwidgets.components.widgets.flyout import (
 )
 from qfluentwidgets.components.widgets.tool_tip import ToolTipFilter
 
+from src.gui import theme
 from src.gui.components.qfluent_widget.no_animated_scroll_area import (
     NoAnimatedScrollArea,
 )
@@ -151,7 +152,8 @@ class SidebarPanel(QFrame):
 
     def _updateAcrylicColor(self) -> None:
         if isDarkTheme():
-            tintColor = QColor(32, 32, 32, 200)
+            tintColor = QColor(theme.BACKGROUND)
+            tintColor.setAlpha(235)
             luminosityColor = QColor(0, 0, 0, 0)
         else:
             tintColor = QColor(255, 255, 255, 180)

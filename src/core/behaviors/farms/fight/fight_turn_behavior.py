@@ -11,11 +11,16 @@ from DBDofusUnity.dofus_unity_reader.models.datas.spell_levels_root import Spell
 from src.core.behaviors.farms.fight.fight_listener_behavior import FightListenerBehavior
 from src.core.behaviors.farms.fight.fight_movement_behavior import FightMovementBehavior
 from src.core.behaviors.farms.fight.fight_spell_behavior import FightSpellBehavior
+from src.core.behaviors.farms.fight.lua_fight_script_behavior import (
+    LuaFightScriptBehavior,
+    LuaFightScriptError,
+)
 from src.core.behaviors.movements.map_move_behavior import MapMoveError
 from src.core.engine.contexts import AttackContext
 from src.core.engine.fights.attack.attacker import Attacker
 from src.core.engine.fights.attack.breed_abilities import BreedAbilitySelector
 from src.core.engine.fights.attack.heal import EMERGENCY_HEAL_HP_THRESHOLD
+from src.core.engine.lua_fight.script import LuaFightScript
 from src.services.human_timings import HumanTimingsService
 
 
@@ -23,12 +28,14 @@ from src.services.human_timings import HumanTimingsService
 class FightTurnBehavior(FightListenerBehavior):
     fight_movement_behavior: FightMovementBehavior
     fight_spell_behavior: FightSpellBehavior
+    lua_fight_script_behavior: LuaFightScriptBehavior
     attack_selector: Attacker
     breed_ability_selector: BreedAbilitySelector
 
     did_attack: bool = field(init=False, default=False)
     did_cast_support_spell: bool = field(init=False, default=False)
     last_cast_spell_id: int | None = field(init=False, default=None)
+    fight_script: LuaFightScript | None = field(init=False, default=None)
 
     def run(self) -> None:
         self.did_attack = False
@@ -45,7 +52,23 @@ class FightTurnBehavior(FightListenerBehavior):
             f"AP {context.action_points}, MP {context.movement_points}, "
             f"{len(context.enemy_actors)} enemies"
         )
+        if self.fight_script is not None and self.fight_script.has_main():
+            return self.lua_fight_script_behavior.start(
+                callback=self._on_lua_turn_finished,
+                parent=self,
+                start=self.fight_script.start_main,
+            )
         self._advance_turn(0)
+
+    def _on_lua_turn_finished(self, error_code: str | None, _values: tuple[object, ...]) -> None:
+        if error_code is MapMoveError.PLAYER_DEAD:
+            return self.finish(error_code)
+        if error_code is LuaFightScriptError.SCRIPT_FAILED:
+            self.logger.warning("Fight script failed, the built-in AI finishes the turn")
+            return self._advance_turn(0)
+        self.raise_if_error(error_code)
+        if not self.lua_fight_script_behavior.turn_passed:
+            self.pass_turn()
 
     def _advance_turn(self, stage: int, with_reserved_ap: bool = True) -> None:
         """Each stage retries until exhausted, then falls through without revisiting earlier stages."""

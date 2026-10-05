@@ -11,8 +11,8 @@ from qfluentwidgets import (
     PrimaryPushButton,
     PushButton,
     SmoothMode,
-    SubtitleLabel,
     TableWidget,
+    TitleLabel,
 )
 from qfluentwidgets.components.dialog_box.dialog import MessageBox
 from qfluentwidgets.components.widgets.label import StrongBodyLabel
@@ -26,6 +26,7 @@ from ankama_launcher_emulator.controller.mail_account import (
 from ankama_launcher_emulator.quarantine_signals import (
     quarantine_signals,
 )
+from src.gui import theme
 from src.services.background import run_in_background
 from src.services.user_activity import UserActivityEntry, UserActivityService
 
@@ -51,13 +52,10 @@ class ActivityPage(QWidget):
         layout = QVBoxLayout(self)
         layout.setContentsMargins(24, 24, 24, 24)
         layout.setSpacing(16)
-        layout.addWidget(SubtitleLabel("Activity", self))
-        layout.addWidget(
-            BodyLabel(
-                "Review recent events and decide what to do with quarantined items.",
-                self,
-            )
-        )
+        layout.addWidget(TitleLabel("Activity", self))
+        description = BodyLabel("Review recent events and decide what to do with quarantined items.", self)
+        theme.set_label_color(description, theme.TEXT_MUTED)
+        layout.addWidget(description)
         layout.addWidget(self._create_activity_card(), 3)
         layout.addWidget(self._create_quarantine_card(), 2)
 

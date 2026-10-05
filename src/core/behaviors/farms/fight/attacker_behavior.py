@@ -40,6 +40,7 @@ class AttackerBehavior(Behavior):
     _wait_for_group: bool = field(init=False, default=False)
     _get_lvl_limit: Callable[[int], float] = staticmethod(config.get_default_fight_group_lvl_limit)
     _monster_ids: set[int] | None = field(init=False, default=None)
+    _respect_group_size: bool = field(init=False, default=True)
 
     def run(
         self,
@@ -47,8 +48,10 @@ class AttackerBehavior(Behavior):
         wait_for_group: bool = False,
         get_lvl_limit: Callable[[int], float] | None = None,
         monster_ids: set[int] | None = None,
+        respect_group_size: bool = True,
     ) -> None:
         self._monster_ids = monster_ids
+        self._respect_group_size = respect_group_size
         if get_lvl_limit:
             self._get_lvl_limit = get_lvl_limit
         self._wait_for_group = wait_for_group
@@ -145,6 +148,10 @@ class AttackerBehavior(Behavior):
 
     def get_next_enemy(self, excluded_group_actor_id: int | None = None) -> MonsterGroupToAttack | None:
         monster_group_infos: list[MonsterGroupToAttack] = []
+        settings = self.game_state.settings
+        size_range = (
+            (settings.fight_group_min_size, settings.fight_group_max_size) if self._respect_group_size else None
+        )
         for (
             actor_id,
             mp_group,
@@ -160,6 +167,7 @@ class AttackerBehavior(Behavior):
                 monster_group_lvl,
                 self._get_lvl_limit(self.game_state.player.limited_lvl),
                 self._monster_ids,
+                size_range,
             ):
                 continue
             move_path_to_group = self.path_finding.find_path(

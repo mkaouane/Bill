@@ -29,6 +29,7 @@ from src.core.behaviors.farms.fight.fight_preparation_behavior import (
 from src.core.behaviors.farms.fight.fight_spell_behavior import FightSpellBehavior
 from src.core.behaviors.farms.fight.fight_turn_behavior import FightTurnBehavior
 from src.core.behaviors.farms.fight.fighter_behavior import FighterBehavior
+from src.core.behaviors.farms.fight.lua_fight_script_behavior import LuaFightScriptBehavior
 from src.core.behaviors.farms.harvest.harvester_behavior import HarvesterBehavior
 from src.core.behaviors.farms.harvest.multi_farming_behavior import MultiFarmingBehavior
 from src.core.behaviors.farms.random_farm_behavior import RandomFarmBehavior
@@ -344,15 +345,26 @@ class BotFactory:
             _logger=logger,
             fight_reachable_cells=fight_reachable_cells,
         )
+        fight_spell_behavior = FightSpellBehavior(
+            event_manager=event_manager,
+            game_state=game_state,
+            _logger=logger,
+        )
+
+        def new_lua_fight_script_behavior() -> LuaFightScriptBehavior:
+            return LuaFightScriptBehavior(
+                event_manager=event_manager,
+                game_state=game_state,
+                _logger=logger,
+                fight_spell_behavior=fight_spell_behavior,
+                fight_movement_behavior=fight_movement_behavior,
+            )
+
         fight_placement_behavior = FightPreparationBehavior(
             game_state=game_state,
             event_manager=event_manager,
             fight_movement_behavior=fight_movement_behavior,
-            _logger=logger,
-        )
-        fight_spell_behavior = FightSpellBehavior(
-            event_manager=event_manager,
-            game_state=game_state,
+            lua_fight_script_behavior=new_lua_fight_script_behavior(),
             _logger=logger,
         )
 
@@ -361,6 +373,7 @@ class BotFactory:
             fight_spell_behavior=fight_spell_behavior,
             event_manager=event_manager,
             fight_movement_behavior=fight_movement_behavior,
+            lua_fight_script_behavior=new_lua_fight_script_behavior(),
             game_state=game_state,
             attack_selector=attacker,
             breed_ability_selector=breed_ability_selector,

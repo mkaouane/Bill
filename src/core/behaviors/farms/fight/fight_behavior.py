@@ -16,6 +16,9 @@ from src.core.behaviors.farms.fight.fight_turn_behavior import FightTurnBehavior
 from src.core.behaviors.items.auto_equipment_from_inventory_behavior import (
     AutoEquipmentFromInventoryBehavior,
 )
+from src.core.engine.lua_fight.api import LuaFightApi
+from src.core.engine.lua_fight.script import LuaFightScript, LuaScriptError
+from src.core.engine.lua_fight.storage import get_fight_script_path
 from src.core.engine.movements.map.path_finding.path_finding import Pathfinding
 from src.core.signals.shared_farm_signals import SharedSignals
 from src.services.human_timings import HumanTimingsService
@@ -35,6 +38,10 @@ class FightBehavior(Behavior):
 
     def run(self) -> None:
         self.run_timer(FIGHT_TIMEOUT_SECONDS, self.on_fight_timeout)
+        # Loaded once per fight so script globals survive from placement to the last turn.
+        fight_script = self._load_fight_script()
+        self.fight_preparation_behavior.fight_script = fight_script
+        self.fight_turn_behavior.fight_script = fight_script
         self.event_manager.on(
             MapComplementaryInformationEvent,
             callback=self.on_map_complementary_information_event,
@@ -50,6 +57,21 @@ class FightBehavior(Behavior):
                 originator=self,
                 once=True,
             )
+
+    def _load_fight_script(self) -> LuaFightScript | None:
+        path = get_fight_script_path(self.login)
+        if path is None:
+            return None
+        try:
+            fight_script = LuaFightScript.load(
+                path,
+                lambda to_lua: LuaFightApi(self.game_state, self.logger, to_lua).functions(),
+            )
+        except LuaScriptError as error:
+            self.logger.error(f"Cannot load fight script {path}, using the built-in AI: {error}")
+            return None
+        self.logger.info(f"Fight script loaded: {path.name}")
+        return fight_script
 
     def on_fight_map_initialized(self):
         self.event_manager.on(FightTurnStartPlayingEvent, self.on_player_turn_event, originator=self)

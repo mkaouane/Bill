@@ -2,13 +2,14 @@ from datetime import datetime
 
 from PyQt6.QtCore import Qt
 from PyQt6.QtWidgets import QHBoxLayout, QVBoxLayout, QWidget
-from qfluentwidgets import BodyLabel, CaptionLabel
+from qfluentwidgets import CaptionLabel, SimpleCardWidget, StrongBodyLabel
 
 from DBDofusUnity.dofus_unity_reader.data_center.data_reader import DataReader
 from DBDofusUnity.dofus_unity_reader.data_center.i18n import I18N
 from src import consts
 from src.controller.player_info_storage import PlayerInfoSnapshot
 from src.core.bot.bot import Bot
+from src.gui import theme
 
 _UNKNOWN_VALUE = "—"
 
@@ -33,6 +34,7 @@ class AccountQuickInfoWidget(QWidget):
             layout, "Subscription end"
         )
         _, self.kamas_label = self._add_info_column(layout, "Kamas")
+        theme.set_label_color(self.kamas_label, theme.GOLD)
         _, self.level_label = self._add_info_column(layout, "Niveau")
         _, self.sub_area_label = self._add_info_column(layout, "Sous-zone actuelle")
 
@@ -49,19 +51,19 @@ class AccountQuickInfoWidget(QWidget):
             self._sync_game_values_from_snapshot(snapshot)
 
     @staticmethod
-    def _add_info_column(layout: QHBoxLayout, title: str) -> tuple[QWidget, BodyLabel]:
-        column_widget = QWidget()
+    def _add_info_column(layout: QHBoxLayout, title: str) -> tuple[QWidget, StrongBodyLabel]:
+        column_widget = SimpleCardWidget()
         column_layout = QVBoxLayout()
-        column_layout.setContentsMargins(0, 2, 0, 2)
-        column_layout.setSpacing(0)
+        column_layout.setContentsMargins(16, 10, 16, 10)
+        column_layout.setSpacing(2)
         column_widget.setLayout(column_layout)
 
-        title_label = CaptionLabel(text=title, parent=column_widget)
-        title_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        title_label = CaptionLabel(text=title.upper(), parent=column_widget)
+        theme.set_label_color(title_label, theme.TEXT_MUTED)
         column_layout.addWidget(title_label)
 
-        value_label = BodyLabel(text=_UNKNOWN_VALUE, parent=column_widget)
-        value_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        value_label = StrongBodyLabel(text=_UNKNOWN_VALUE, parent=column_widget)
+        theme.set_label_color(value_label, theme.TEXT)
         value_label.setWordWrap(True)
         value_label.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
         column_layout.addWidget(value_label)

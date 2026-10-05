@@ -94,6 +94,8 @@ class DungeonBehavior(Behavior):
             count_fight_limit=1,
             wait_for_group=True,
             get_lvl_limit=get_lvl_limit,
+            # Dungeon rooms have fixed groups that must be fought regardless of the farming size range.
+            respect_group_size=False,
             callback=partial(self.on_attacker_behavior_finished, dungeon_info=dungeon_info),
             parent=self,
         )

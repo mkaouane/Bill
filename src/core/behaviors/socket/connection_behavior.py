@@ -16,11 +16,16 @@ from DBDofusUnity.datas.protos.non_obf.connection.login_message_pb2 import (
     SelectServerResponse,
     TokenRequest,
 )
-from DBDofusUnity.dofus_unity_reader.game_constants.server import ServerEnum
 from google.protobuf.json_format import MessageToDict
 from DBDofusUnity.proto_mapper_assembly.runtime.runtime_store import RuntimeDataStore
 
 from src.controller.bot_config import BotConfigService
+from src.controller.character_choice import (
+    choose_character_target,
+    get_preferred_character,
+    known_characters_from_servers,
+    record_known_characters,
+)
 from src.core.behaviors.behavior import Behavior
 
 
@@ -77,10 +82,17 @@ class ConnectionBehavior(Behavior):
         SubscriptionExpirationStorage().record_expiration(
             self.game_state.player.login, datetime.fromisoformat(msg.success.subscription_end_date)
         )
+        login = self.game_state.player.login
+        servers = list(msg.success.server_list.servers)
+        record_known_characters(login, known_characters_from_servers(servers))
+        target, warning = choose_character_target(servers, get_preferred_character(login))
+        if warning is not None:
+            self.logger.warning(warning)
+        self.game_state.player.character_name_to_select = target.character_name
         self.event_manager.send_connection_msg(
-            LoginMessage(request=Request(uuid="1", selectServer=SelectServerRequest(server=ServerEnum.BRIAL)))
+            LoginMessage(request=Request(uuid="1", selectServer=SelectServerRequest(server=target.server_id)))
         )
-        self.logger.info("Sent SelectServerRequest")
+        self.logger.info(f"Sent SelectServerRequest for server {target.server_id} ({target.character_name})")
 
         self.event_manager.on(
             SelectServerResponse,

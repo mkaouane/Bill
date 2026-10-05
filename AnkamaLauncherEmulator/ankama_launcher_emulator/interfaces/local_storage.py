@@ -6,6 +6,18 @@ from pydantic import BaseModel, Field
 from ankama_launcher_emulator.interfaces.zaap_files import UserAccount
 
 
+class KnownCharacter(BaseModel):
+    server_id: int
+    name: str
+    level: int
+    breed: str
+
+
+class PreferredCharacter(BaseModel):
+    server_id: int
+    name: str
+
+
 class BotRecord(BaseModel):
     email: str
     password: str | None = None
@@ -17,6 +29,9 @@ class BotRecord(BaseModel):
     account_info: UserAccount | None = None
     quarantine_reason: str | None = None
     quarantined_at: datetime | None = None
+    fight_script_path: str | None = None
+    known_characters: list[KnownCharacter] = Field(default_factory=list[KnownCharacter])
+    preferred_character: PreferredCharacter | None = None
 
 
 class BotsFile(BaseModel):

@@ -1,6 +1,6 @@
 import os
 
-from PyQt6.QtCore import QMargins, QPoint, QRect, Qt, pyqtSignal
+from PyQt6.QtCore import QMargins, QPoint, QRect, QRectF, Qt, pyqtSignal
 from PyQt6.QtGui import QColor, QCursor, QIcon, QPainter, QPaintEvent
 from PyQt6.QtWidgets import (
     QHBoxLayout,
@@ -25,6 +25,7 @@ from qfluentwidgets.components.widgets.tool_tip import ToolTipFilter
 
 from src.consts import RESOURCE_FOLDER
 from src.core.signals.bot_signals import BotSignals
+from src.gui import theme
 
 
 class SidebarItem(NavigationWidget):
@@ -66,6 +67,7 @@ class SidebarItem(NavigationWidget):
         self.setLayout(self.main_layout)
         self.main_layout.addLayout(self.header_layout)
         self._status_label = CaptionLabel(self)
+        theme.set_label_color(self._status_label, theme.TEXT_MUTED)
         self._status_label.setIndent(6)
         self._status_label.hide()
         self.main_layout.addWidget(self._status_label)
@@ -131,7 +133,7 @@ class SidebarItem(NavigationWidget):
             self._right_icon.hide()
 
     def set_subscribed(self, is_subscribed: bool) -> None:
-        color = QColor(0, 230, 118) if is_subscribed else QColor(244, 67, 54)
+        color = theme.SUCCESS if is_subscribed else theme.ERROR
         subscription_icon = FluentIcon("Certificate")
         self._subscription_icon.setPixmap(subscription_icon.icon(color=color).pixmap(16))
         self._subscription_icon.setToolTip(
@@ -195,9 +197,9 @@ class SidebarItem(NavigationWidget):
             painter = QPainter(pixmap)
             painter.setRenderHint(QPainter.RenderHint.Antialiasing)
             painter.setPen(Qt.PenStyle.NoPen)
-            painter.setBrush(QColor(0, 0, 0, 180))
+            painter.setBrush(theme.BACKGROUND)
             painter.drawEllipse(9, 9, 7, 7)
-            painter.setBrush(QColor(0, 230, 118))
+            painter.setBrush(theme.SUCCESS)
             painter.drawEllipse(10, 10, 5, 5)
             painter.end()
         self._left_icon.setPixmap(pixmap)
@@ -262,9 +264,18 @@ class SidebarItem(NavigationWidget):
         pl = m.left()
         globalRect = QRect(self.mapToGlobal(QPoint()), self.size())
 
+        card_rect = QRectF(self.rect()).adjusted(0.5, 0.5, -0.5, -0.5)
+        if not self.isCompacted:
+            painter.setPen(theme.BORDER)
+            painter.setBrush(theme.SURFACE_RAISED)
+            painter.drawRoundedRect(card_rect, 8, 8)
+            painter.setPen(Qt.PenStyle.NoPen)
+
         if self._canDrawIndicator():
-            painter.setBrush(QColor(c, c, c, 6 if self.isEnter else 10))
-            painter.drawRoundedRect(self.rect(), 5, 5)
+            selected_background = QColor(themeColor())
+            selected_background.setAlpha(28 if self.isEnter else 20)
+            painter.setBrush(selected_background)
+            painter.drawRoundedRect(card_rect, 8, 8)
 
             painter.setBrush(themeColor())
             indicator_height = max(16, int(self.height() * 0.65))
@@ -272,7 +283,7 @@ class SidebarItem(NavigationWidget):
             painter.drawRoundedRect(pl, indicator_top, 3, indicator_height, 1.5, 1.5)
         elif self.isEnter and self.isEnabled() and globalRect.contains(QCursor.pos()):
             painter.setBrush(QColor(c, c, c, 10))
-            painter.drawRoundedRect(self.rect(), 5, 5)
+            painter.drawRoundedRect(card_rect, 8, 8)
 
         painter.setFont(self.font())
         painter.setPen(self.textColor())

@@ -1,0 +1,23 @@
+from collections.abc import Callable
+from typing import Any
+
+class LuaError(Exception): ...
+
+class LuaRuntime:
+    def __init__(
+        self,
+        encoding: str | None = ...,
+        source_encoding: str | None = ...,
+        attribute_filter: Callable[[object, str, bool], str] | None = ...,
+        attribute_handlers: tuple[Callable[..., Any], Callable[..., Any]] | None = ...,
+        register_eval: bool = ...,
+        unpack_returned_tuples: bool = ...,
+        register_builtins: bool = ...,
+        overflow_handler: Callable[..., Any] | None = ...,
+        max_memory: int | None = ...,
+    ) -> None: ...
+    def eval(self, lua_code: str, *args: object, name: str | None = ..., mode: str | None = ...) -> Any: ...
+    def execute(self, lua_code: str, *args: object, name: str | None = ..., mode: str | None = ...) -> Any: ...
+    def compile(self, lua_code: str, name: str | None = ..., mode: str | None = ...) -> Any: ...
+    def globals(self) -> Any: ...
+    def table_from(self, *args: object, recursive: bool = ...) -> Any: ...

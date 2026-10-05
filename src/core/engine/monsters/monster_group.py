@@ -17,6 +17,12 @@ def get_level_monster_group(
     return total_group_lvl
 
 
+def get_monster_group_size(
+    monster_group: ActorPositionInformation.ActorInformation.RolePlayActor.MonsterGroupActor,
+) -> int:
+    return 1 + len(monster_group.identification.underlings)
+
+
 def get_monster_group_gids(
     monster_group: ActorPositionInformation.ActorInformation.RolePlayActor.MonsterGroupActor,
 ) -> set[int]:
@@ -86,7 +92,12 @@ def is_group_targetable(
     monster_group_lvl: int,
     lvl_limit: float,
     monster_ids: set[int] | None,
+    size_range: tuple[int, int] | None = None,
 ) -> bool:
     if monster_ids is not None and not (monster_ids & get_monster_group_gids(monster_group)):
         return False
+    if size_range is not None:
+        min_size, max_size = size_range
+        if not min_size <= get_monster_group_size(monster_group) <= max_size:
+            return False
     return is_valid_monster_group(logger, monster_group, monster_group_lvl, lvl_limit)

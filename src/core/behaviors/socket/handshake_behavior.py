@@ -112,7 +112,17 @@ class HandshakeBehavior(Behavior):
         if character_count == 0:
             self.character_creation_behavior.start(parent=self, callback=None)
         else:
-            character = msg.characters[0]
+            wanted_name = self.game_state.player.character_name_to_select
+            character = next(
+                (
+                    character
+                    for character in msg.characters
+                    if wanted_name is not None
+                    and character.character_basic_information.name.casefold() == wanted_name.casefold()
+                ),
+                msg.characters[0],
+            )
+            self.logger.info(f"Selecting character {character.character_basic_information.name}")
             self.event_manager.send(CharacterSelectionRequest(character_id=character.id))
             self.event_manager.send(CharacterSelectionRequest(character_id=character.id))
 
