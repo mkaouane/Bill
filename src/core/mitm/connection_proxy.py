@@ -1,10 +1,17 @@
+import logging
 from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import datetime
 from typing import cast
 
+from ankama_launcher_emulator.controller.bot_storage import (
+    BotStorageController,
+)
 from ankama_launcher_emulator.controller.subscription_expiration import (
     SubscriptionExpirationStorage,
+)
+from ankama_launcher_emulator.decrypter.hardware_identity import (
+    derive_device_identifier,
 )
 from ankama_launcher_emulator.proxy.proxy import (
     Proxy,
@@ -31,6 +38,8 @@ from src.protocol.protocol_connection import (
     get_conn_msg_info,
 )
 
+logger = logging.getLogger(__name__)
+
 
 class ClientVersionOutdatedError(RuntimeError):
     pass
@@ -55,6 +64,16 @@ class ConnectionProxy(Proxy):
     def alter_msg_datas(self, msg_content_datas: bytes, msg_datas: bytes) -> bytes | None:
         msg = LoginMessage()
         msg.ParseFromString(msg_content_datas)
+
+        if msg.HasField("request") and msg.request.HasField("identification"):
+            login = self.bot.account.apikey.login if self.bot and self.bot.account else None
+            if login:
+                record = BotStorageController().get_record(login)
+                if record and record.hardware_id:
+                    device_id = derive_device_identifier(record.hardware_id)
+                    logger.info("Spoofing device_identifier for %s -> %s", login, device_id)
+                    msg.request.identification.device_identifier = device_id
+                    return encode_msg(msg)
 
         if msg.response.HasField("selectServer") and msg.response.selectServer.HasField("success"):
             assert self.bot

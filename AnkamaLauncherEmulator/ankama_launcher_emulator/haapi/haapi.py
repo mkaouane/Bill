@@ -14,6 +14,9 @@ from ankama_launcher_emulator.decrypter.crypto_helper import (
     CryptoHelper,
 )
 from ankama_launcher_emulator.decrypter.device import Device
+from ankama_launcher_emulator.decrypter.hardware_identity import (
+    derive_user_name,
+)
 from ankama_launcher_emulator.haapi.urls import (
     ANKAMA_ACCOUNT_CREATE_TOKEN,
     ANKAMA_ACCOUNT_SET_NICKNAME_WITH_API_KEY,
@@ -209,8 +212,13 @@ class Haapi:
         return self._validate_shield_code(ANKAMA_SHIELD_VALIDATE_OTP, code, game_id)
 
     def _validate_shield_code(self, url: str, code: str, game_id: int) -> DecipheredCertif:
-        hm1, hm2 = CryptoHelper.createHmEncoders()
-        name = f"launcher-{getpass.getuser()}"
+        try:
+            hm1, hm2 = CryptoHelper.createHmEncoders(self.login)
+        except TypeError:
+            hm1, hm2 = CryptoHelper.createHmEncoders()
+        record = BotStorageController().get_record(self.login)
+        user_name = derive_user_name(record.hardware_id) if record else getpass.getuser()
+        name = f"launcher-{user_name}"
         response = self.zaap_session.get(
             url,
             params={

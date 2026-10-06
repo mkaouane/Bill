@@ -14,6 +14,7 @@ from ankama_launcher_emulator.decrypter.crypto_helper import (
 from ankama_launcher_emulator.decrypter.device import Device
 from ankama_launcher_emulator.decrypter.hardware_identity import (
     generate_hardware_id,
+    generate_machine_guid,
 )
 from ankama_launcher_emulator.interfaces.credentials import (
     DecipheredApiKey,
@@ -77,6 +78,7 @@ def import_zaap_accounts() -> None:
             create=lambda raw=raw, user_account=user_account, login=deciphered.login: BotRecord(
                 email=login,
                 hardware_id=generate_hardware_id(),
+                machine_guid=generate_machine_guid(),
                 encrypted_api_key=raw,
                 account_info=user_account,
             ),

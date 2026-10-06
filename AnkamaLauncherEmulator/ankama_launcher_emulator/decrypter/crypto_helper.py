@@ -12,6 +12,10 @@ from ankama_launcher_emulator.controller.bot_storage import (
     BotStorageController,
 )
 from ankama_launcher_emulator.decrypter.device import Device
+from ankama_launcher_emulator.decrypter.hardware_identity import (
+    derive_machine_guid,
+    derive_user_name,
+)
 from ankama_launcher_emulator.interfaces.credentials import (
     DecipheredApiKey,
     DecipheredCertif,
@@ -103,13 +107,21 @@ class CryptoHelper:
         return hashlib.md5(string.encode("utf-8")).digest()
 
     @staticmethod
-    def createHmEncoders() -> tuple[str, str]:
+    def createHmEncoders(login: str | None = None) -> tuple[str, str]:
         arch = Device.getArch()
         plt = Device.getPlatform()
-        machine_id = Device.getMachineId(arch)
-        username = Device.getUsername()
         os_version = Device.getOsVersion()
         ram = Device.getComputerRam()
+
+        record = BotStorageController().get_record(login) if login else None
+        if record:
+            guid = record.machine_guid or derive_machine_guid(record.hardware_id)
+            machine_id = hashlib.sha256(guid.encode("utf-8")).hexdigest()
+            username = derive_user_name(record.hardware_id)
+        else:
+            machine_id = Device.getMachineId(arch)
+            username = Device.getUsername()
+
         machine_infos = [
             arch,
             plt,
@@ -124,7 +136,10 @@ class CryptoHelper:
 
     @staticmethod
     def generateHashFromCertif(certif: DecipheredCertif) -> str:
-        hm1, hm2 = CryptoHelper.createHmEncoders()
+        try:
+            hm1, hm2 = CryptoHelper.createHmEncoders(certif.login)
+        except TypeError:
+            hm1, hm2 = CryptoHelper.createHmEncoders()
 
         decipher = AES.new(hm2.encode(), AES.MODE_ECB)
 

@@ -12,6 +12,7 @@ from ankama_launcher_emulator.controller.mail_account import (
 )
 from ankama_launcher_emulator.decrypter.hardware_identity import (
     generate_hardware_id,
+    generate_machine_guid,
 )
 from ankama_launcher_emulator.interfaces.local_storage import (
     BotRecord,
@@ -187,6 +188,7 @@ class BotStorageController(metaclass=Singleton):
                 email=email,
                 password=password,
                 hardware_id=generate_hardware_id(),
+                machine_guid=generate_machine_guid(),
                 schedule_profile=schedule_profile,
             ),
             update=update,

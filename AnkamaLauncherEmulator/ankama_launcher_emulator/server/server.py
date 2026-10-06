@@ -5,8 +5,16 @@ from dataclasses import dataclass, field
 from threading import Thread
 
 from ankama_launcher_emulator.consts import LAUNCHER_PORT
+from ankama_launcher_emulator.controller.bot_storage import (
+    BotStorageController,
+)
 from ankama_launcher_emulator.decrypter.crypto_helper import (
     CryptoHelper,
+)
+from ankama_launcher_emulator.decrypter.hardware_identity import (
+    derive_computer_name,
+    derive_machine_guid,
+    derive_user_name,
 )
 from ankama_launcher_emulator.gen_zaap.zaap import ZaapService
 from ankama_launcher_emulator.haapi.haapi import Haapi
@@ -98,8 +106,24 @@ class AnkamaLauncherServer:
         connection_port = proxy_listener.start(port=0, proxy_url=proxy_url)
         proxy_listener.on_connection_port_assigned(login, connection_port)
 
+        record = BotStorageController().get_record(login)
+        machine_guid = (
+            record.machine_guid or derive_machine_guid(record.hardware_id)
+            if record
+            else None
+        )
+        computer_name = (
+            derive_computer_name(record.hardware_id) if record else None
+        )
+        user_name = (
+            derive_user_name(record.hardware_id) if record else None
+        )
+
         return launch_dofus_exe(
             self.instance_id,
             random_hash,
             connection_port=connection_port,
+            machine_guid=machine_guid,
+            computer_name=computer_name,
+            user_name=user_name,
         )

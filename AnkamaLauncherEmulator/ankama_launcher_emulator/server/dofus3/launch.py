@@ -17,8 +17,11 @@ def launch_dofus_exe(
     instance_id: int,
     random_hash: str,
     connection_port: int,
+    machine_guid: str | None = None,
+    computer_name: str | None = None,
+    user_name: str | None = None,
 ) -> int:
-    log_path = os.path.join(ZAAP_PATH, "gamesLogs", "dofus-dofus3", "dofus.log")
+    log_path = os.path.join(ZAAP_PATH, "gamesLogs", "dofus-dofus3", f"dofus-{instance_id}.log")
 
     command: list[str | bytes] = [
         resolve_dofus_path(),
@@ -60,7 +63,15 @@ def launch_dofus_exe(
 
     with ExitStack() as cleanup:
         cleanup.callback(device.kill, pid)
-        load_frida_script(pid, connection_port, device=device, resume=True)
+        load_frida_script(
+            pid,
+            connection_port,
+            device=device,
+            resume=True,
+            machine_guid=machine_guid,
+            computer_name=computer_name,
+            user_name=user_name,
+        )
         cleanup.pop_all()
 
     return pid
@@ -71,10 +82,24 @@ def load_frida_script(
     port: int,
     device: frida.Device,
     resume: bool = False,
+    machine_guid: str | None = None,
+    computer_name: str | None = None,
+    user_name: str | None = None,
 ) -> None:
     session = device.attach(pid)
     script = session.create_script(FRIDA_SCRIPT_PATH.read_text(encoding="utf-8"))
     script.load()
-    script.post({"port": port, "proxyIp": [127, 0, 0, 1]})
+    payload: dict[str, object] = {"port": port, "proxyIp": [127, 0, 0, 1]}
+    if machine_guid:
+        payload["machineGuid"] = machine_guid
+    if computer_name:
+        payload["computerName"] = computer_name
+    if user_name:
+        payload["userName"] = user_name
+    try:
+        script.exports.init(payload)
+    except Exception:
+        script.post(payload)
     if resume:
         device.resume(pid)
+
