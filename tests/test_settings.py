@@ -15,7 +15,7 @@ from ankama_launcher_emulator.interfaces.mail_account import ManualAccountConfig
 from ankama_launcher_emulator.interfaces.schedule_profile import ProxyConfig, ScheduleProfile, TimeSlot
 from src.controller import settings as settings_module
 from src.controller.settings import SettingsService
-from src.core.config import BehaviorSettings, GlobalSettings
+from src.core.config import BehaviorSettings, GlobalSettings, JobPrioritySettings
 from src.core.bot.bot import Bot
 from src.core.bot.lifecycle.scheduler import BotScheduler
 from src.utils.runtime_support import RuntimeSetupError
@@ -80,6 +80,18 @@ def test_legacy_quest_setting_is_removed_and_other_settings_are_preserved() -> N
     persisted = settings_module.SETTINGS_PATH.read_text(encoding="utf-8")
     assert "do_quest" not in persisted
     assert GlobalSettings.model_validate_json(persisted) == settings
+
+
+def test_job_priorities_default_to_normal_and_persist() -> None:
+    settings_module.SETTINGS_PATH.write_text('{"behaviors":{"do_craft":true}}', encoding="utf-8")
+    service = SettingsService()
+    assert service.get().behaviors.job_priorities == JobPrioritySettings()
+
+    priorities = JobPrioritySettings(fisherman="ignored", miner="priority")
+    service.update_behaviors(BehaviorSettings(job_priorities=priorities), False)
+
+    persisted = GlobalSettings.model_validate_json(settings_module.SETTINGS_PATH.read_text())
+    assert persisted.behaviors.job_priorities == priorities
 
 
 def test_service_key_precedence_and_concurrent_updates(monkeypatch: pytest.MonkeyPatch) -> None:

@@ -17,6 +17,7 @@ from DBDofusUnity.dofus_unity_reader.game_constants.characteristic import Effect
 from DBDofusUnity.dofus_unity_reader.grid.map_point import MapPoint
 from DBDofusUnity.dofus_unity_reader.models.datas.map_positions_root import MapInformationRootItem
 from DBDofusUnity.dofus_unity_reader.models.world_graph import Transition, Vertice
+from src.core.config import JobPrioritySettings
 
 if TYPE_CHECKING:
     from src.core.engine.fights.attack.enemy_data import EnemyData
@@ -106,3 +107,4 @@ class HarvesterAreaContext:
     player_jobs_lvl_by_id: Mapping[int, int]
     bank_storage_by_gid: Mapping[int, ObjectItemInventory]
     current_area_infos_by_server_and_character: Mapping[tuple[int, int], AreaInfo]
+    job_priorities: JobPrioritySettings

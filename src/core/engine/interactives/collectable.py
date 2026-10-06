@@ -26,6 +26,10 @@ class Collectable:
         return related_job in HARVESTER_JOB_IDS
 
     @property
+    def job_id(self) -> int:
+        return DataReader().skill_by_id[self.skill.skill_id].parentJobId
+
+    @property
     def skill_ids(self) -> list[int]:
         return [skill.skill_id for skill in self.interactive_element.enabled_skills]
 

@@ -4,6 +4,7 @@ from unittest.mock import MagicMock
 import pytest
 from DBDofusUnity.dofus_unity_reader.data_center.area_info import AreaInfo
 
+from src.core.config import JobPrioritySettings
 from src.core.engine.contexts import HarvesterAreaContext
 from src.core.engine.weights import weight_areas
 
@@ -39,6 +40,7 @@ def test_area_selection_scores_accessible_harvestables_without_map_scan(
             player_jobs_lvl_by_id={5: 200},
             bank_storage_by_gid={},
             current_area_infos_by_server_and_character={},
+            job_priorities=JobPrioritySettings(),
         ),
         previous_area_info_played=[],
         logger=MagicMock(),

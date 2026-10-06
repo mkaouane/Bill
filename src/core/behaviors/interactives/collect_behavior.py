@@ -61,6 +61,11 @@ class CollectBehavior(Behavior):
                 for collectable in collectables
                 if collectable.resource_item_id in self.target_resource_item_ids
             ]
+        else:
+            job_priorities = self.game_state.settings.job_priorities
+            collectables = [
+                collectable for collectable in collectables if not job_priorities.is_ignored(collectable.job_id)
+            ]
         if len(collectables) == 0:
             return self.finish()
 

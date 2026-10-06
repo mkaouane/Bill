@@ -11,7 +11,7 @@ from DBDofusUnity.dofus_unity_reader.game_constants.job import JobEnum
 from DBDofusUnity.dofus_unity_reader.game_constants.monster import PROTECTOR_RACES
 
 from src.controller.game_data import GameDataController
-from src.core.config import WEIGHT_BY_JOB
+from src.core.config import WEIGHT_BY_JOB, JobPrioritySettings
 from src.core.engine.monsters.drops import get_rare_gid_with_weight_from_protector_drop
 from src.core.engine.movements.map.map_tools import MapTools
 
@@ -37,6 +37,7 @@ def get_map_id_collectable_weight(
     player_job_lvl_by_id: dict[int, int],
     storage_by_gid: dict[int, ObjectItemInventory],
     is_sub: bool,
+    job_priorities: JobPrioritySettings,
     server_id: int = 1,
 ) -> float:
     item_job_by_gfx = GameDataController().get_item_job_by_gfx()
@@ -56,7 +57,9 @@ def get_map_id_collectable_weight(
         job_lvl = player_job_lvl_by_id.get(job_id, 1)
         if item.level is None or item.level > job_lvl:
             continue
-        weight_item = get_weight_collectable(job_id, job_lvl, item_id, storage_by_gid, is_sub, server_id)
+        weight_item = get_weight_collectable(
+            job_id, job_lvl, item_id, storage_by_gid, is_sub, job_priorities, server_id
+        )
         weight_map += weight_item
     return weight_map
 
@@ -67,8 +70,12 @@ def get_weight_collectable(
     item_gid: int,
     storage_by_gid: dict[int, ObjectItemInventory],
     is_sub: bool,
+    job_priorities: JobPrioritySettings,
     server_id: int = 1,
-):
+) -> float:
+    job_multiplier = job_priorities.weight_multiplier(job_id)
+    if job_multiplier == 0:
+        return 0
     avg_price_by_gid = GameDataController().get_avg_price_by_gid(server_id)
     rare_drop_weight_by_collectable_gid = get_rare_drop_weight_by_collectable_gid()
 
@@ -78,12 +85,12 @@ def get_weight_collectable(
 
     price = avg_price_by_gid.get(item_gid, 1)
     if price <= 0:
-        return 1
+        return job_multiplier
 
     scaled_price = price**PRICE_EXPONENT
     weight = base * scaled_price
     storage_qty = related_object.item.quantity if (related_object := storage_by_gid.get(item_gid)) else 0
-    return weight / (1 + log1p(storage_qty))
+    return job_multiplier * weight / (1 + log1p(storage_qty))
 
 
 @cache

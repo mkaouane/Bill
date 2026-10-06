@@ -1,8 +1,14 @@
-from qfluentwidgets import BodyLabel, SpinBox
+from qfluentwidgets import BodyLabel, ComboBox, SpinBox
 from qfluentwidgets.components.widgets.check_box import CheckBox
 
 from src.controller.settings import SettingsService
-from src.core.config import MAX_MONSTER_GROUP_SIZE, BehaviorSettings, GlobalSettings
+from src.core.config import (
+    MAX_MONSTER_GROUP_SIZE,
+    BehaviorSettings,
+    GlobalSettings,
+    JobPriority,
+    JobPrioritySettings,
+)
 from src.gui.pages.settings.settings_panel import SettingsPanel
 
 BEHAVIOR_LABELS = {
@@ -15,6 +21,19 @@ BEHAVIOR_LABELS = {
     "enable_auto_equipment_market_purchases": "Allow equipment purchases",
     "enable_auto_ogrine_subscriptions": "Allow Ogrine subscriptions",
     "enable_auto_paysafecard_subscriptions": "Allow Paysafecard subscriptions",
+}
+
+JOB_PRIORITY_LABELS = {
+    "woodcutter": "Harvest priority: Woodcutter",
+    "miner": "Harvest priority: Miner",
+    "alchemist": "Harvest priority: Alchemist",
+    "peasant": "Harvest priority: Farmer",
+    "fisherman": "Harvest priority: Fisherman",
+}
+JOB_PRIORITY_CHOICES: dict[JobPriority, str] = {
+    "ignored": "Ignored",
+    "normal": "Normal",
+    "priority": "Priority",
 }
 
 
@@ -34,6 +53,13 @@ class BehaviorSettingsPanel(SettingsPanel):
         # Keep the range valid while editing instead of rejecting it on save.
         self.group_min_size.valueChanged.connect(self.group_max_size.setMinimum)
         self.group_max_size.valueChanged.connect(self.group_min_size.setMaximum)
+        self.job_priorities: dict[str, ComboBox] = {}
+        for name, label in JOB_PRIORITY_LABELS.items():
+            combo = ComboBox(self)
+            for priority, priority_label in JOB_PRIORITY_CHOICES.items():
+                combo.addItem(priority_label, userData=priority)
+            self.form.addRow(BodyLabel(label, self), combo)
+            self.job_priorities[name] = combo
         self.automation = CheckBox("Automatically create and authenticate accounts", self)
         self.form.addRow(self.automation)
 
@@ -51,6 +77,8 @@ class BehaviorSettingsPanel(SettingsPanel):
             self.group_max_size.setRange(1, MAX_MONSTER_GROUP_SIZE)
             self.group_min_size.setValue(settings.behaviors.fight_group_min_size)
             self.group_max_size.setValue(settings.behaviors.fight_group_max_size)
+            for name, combo in self.job_priorities.items():
+                combo.setCurrentIndex(combo.findData(getattr(settings.behaviors.job_priorities, name)))
             self.automation.setChecked(settings.enable_account_automation)
 
         self.perform(SettingsService().get, render)
@@ -61,6 +89,9 @@ class BehaviorSettingsPanel(SettingsPanel):
                 **{name: check.isChecked() for name, check in self.checks.items()},
                 "fight_group_min_size": self.group_min_size.value(),
                 "fight_group_max_size": self.group_max_size.value(),
+                "job_priorities": JobPrioritySettings.model_validate(
+                    {name: combo.currentData() for name, combo in self.job_priorities.items()}
+                ),
             }
         )
         automation = self.automation.isChecked()

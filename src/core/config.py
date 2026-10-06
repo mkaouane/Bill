@@ -2,7 +2,7 @@ import datetime
 from random import uniform
 
 from dotenv import load_dotenv
-from typing import Self
+from typing import Literal, Self
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
@@ -21,6 +21,46 @@ ENABLE_SESSION_CONTEXT = False
 MAX_MONSTER_GROUP_SIZE = 8
 
 
+JobPriority = Literal["ignored", "normal", "priority"]
+
+JOB_PRIORITY_WEIGHT_MULTIPLIER: dict[JobPriority, float] = {
+    "ignored": 0,
+    "normal": 1,
+    "priority": 10,
+}
+
+
+class JobPrioritySettings(BaseModel):
+    model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
+
+    woodcutter: JobPriority = "normal"
+    miner: JobPriority = "normal"
+    alchemist: JobPriority = "normal"
+    peasant: JobPriority = "normal"
+    fisherman: JobPriority = "normal"
+
+    def priority_of(self, job_id: int) -> JobPriority:
+        match job_id:
+            case JobEnum.WOODCUTTER:
+                return self.woodcutter
+            case JobEnum.MINER:
+                return self.miner
+            case JobEnum.ALCHEMIST:
+                return self.alchemist
+            case JobEnum.PEASANT:
+                return self.peasant
+            case JobEnum.FISHERMAN:
+                return self.fisherman
+            case _:
+                return "normal"
+
+    def weight_multiplier(self, job_id: int) -> float:
+        return JOB_PRIORITY_WEIGHT_MULTIPLIER[self.priority_of(job_id)]
+
+    def is_ignored(self, job_id: int) -> bool:
+        return self.priority_of(job_id) == "ignored"
+
+
 class BehaviorSettings(BaseModel):
     model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
 
@@ -35,6 +75,7 @@ class BehaviorSettings(BaseModel):
     enable_auto_paysafecard_subscriptions: bool = False
     fight_group_min_size: int = Field(default=1, ge=1, le=MAX_MONSTER_GROUP_SIZE)
     fight_group_max_size: int = Field(default=MAX_MONSTER_GROUP_SIZE, ge=1, le=MAX_MONSTER_GROUP_SIZE)
+    job_priorities: JobPrioritySettings = JobPrioritySettings()
 
     @model_validator(mode="after")
     def check_fight_group_size_range(self) -> Self:

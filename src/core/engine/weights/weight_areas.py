@@ -10,6 +10,7 @@ from DBDofusUnity.dofus_unity_reader.data_center.area_info import (
 )
 from DBDofusUnity.dofus_unity_reader.data_center.data_reader import DataReader
 from src.controller.game_data import GameDataController
+from src.core.config import JobPrioritySettings
 from src.core.engine.contexts import HarvesterAreaContext
 from src.core.engine.weights.harvester.weight_collectable import (
     get_weight_collectable,
@@ -23,6 +24,7 @@ def get_fast_weight_harvester_sub_area(
     sub_area_id: int,
     is_sub: bool,
     job_id_by_item_id: dict[int, int],
+    job_priorities: JobPrioritySettings,
     server_id: int = 1,
 ) -> float:
     harvestables = DataReader().sub_area_by_id[sub_area_id].harvestables
@@ -36,6 +38,7 @@ def get_fast_weight_harvester_sub_area(
             item_id,
             storage_by_gid,
             is_sub,
+            job_priorities,
             server_id,
         )
         for item_id in harvestables
@@ -109,6 +112,7 @@ def get_random_best_area_info(
                 area_info.sub_area_id,
                 context.player_is_sub,
                 job_id_by_item_id,
+                context.job_priorities,
                 server_id,
             )
         else:
@@ -119,6 +123,7 @@ def get_random_best_area_info(
                     sub_area_id,
                     context.player_is_sub,
                     job_id_by_item_id,
+                    context.job_priorities,
                     server_id,
                 )
                 for sub_area_id in DataReader().sub_areas_by_area_id[area_info.area_id]

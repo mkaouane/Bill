@@ -24,7 +24,6 @@ from DBDofusUnity.datas.protos.non_obf.game.teleportation_pb2 import (
 )
 from src.core.engine.fights.stats.characteristic import (
     build_characteristic_upgrade_request,
-    get_max_characteristic_per_point,
 )
 from src.core.events_manager.priority import PriorityEnum
 from src.core.frames.frame import Frame
@@ -113,11 +112,15 @@ class PlayerFrame(Frame):
         if not self.is_playing_event.is_set():
             self.game_state.player.is_characteristic_upgrade_complete_event.set()
             return
-        characteristic_points = get_max_characteristic_per_point(level)
-        self.logger.info(f"New amount of base char : {characteristic_points}")
         primary_element = self.game_state.fight.primary_and_second_elem[0]
-        request = build_characteristic_upgrade_request(primary_element, characteristic_points)
-        self.event_manager.send(request)
+        request = build_characteristic_upgrade_request(
+            primary_element, self.game_state.fight.characteristic_by_id
+        )
+        if request is None:
+            self.logger.info(f"Level {level}: no characteristic points to spend")
+        else:
+            self.logger.info(f"Level {level}: spending characteristic points, new base stats: {request}")
+            self.event_manager.send(request)
         self.game_state.player.is_characteristic_upgrade_complete_event.set()
 
     def on_job_experiences_update_event(self, message: JobExperiencesUpdateEvent) -> None:

@@ -1,10 +1,12 @@
+from collections.abc import Mapping
+
 from DBDofusUnity.datas.protos.non_obf.game.character_pb2 import (
     CharacterCharacteristicUpgradeRequest,
 )
 from DBDofusUnity.datas.protos.non_obf.game.common_pb2 import (
     CharacterCharacteristic,
 )
-from DBDofusUnity.dofus_unity_reader.game_constants.characteristic import EffectElement
+from DBDofusUnity.dofus_unity_reader.game_constants.characteristic import CharacteristicEnum, EffectElement
 
 
 def get_stat_by_id(stat: CharacterCharacteristic | None) -> int:
@@ -34,40 +36,61 @@ def get_stat_by_id(stat: CharacterCharacteristic | None) -> int:
     return 0
 
 
-def get_max_characteristic_per_point(level: int) -> int:
-    available_points = (level - 1) * 5
+# The upgrade request carries absolute base values: any omitted characteristic is reset to 0.
+UPGRADABLE_CHARACTERISTIC_BY_FIELD: dict[str, CharacteristicEnum] = {
+    "strength": CharacteristicEnum.STRENGTH,
+    "vitality": CharacteristicEnum.VITALITY,
+    "wisdom": CharacteristicEnum.WISDOM,
+    "chance": CharacteristicEnum.CHANCE,
+    "agility": CharacteristicEnum.AGILITY,
+    "intelligence": CharacteristicEnum.INTELLIGENCE,
+}
 
-    used_points = 0
-    remaining = available_points
+ELEMENT_UPGRADE_FIELD: dict[EffectElement, str] = {
+    EffectElement.STRENGTH: "strength",
+    EffectElement.INTELLIGENCE: "intelligence",
+    EffectElement.CHANCE: "chance",
+    EffectElement.AGILITY: "agility",
+}
 
-    take = min(100, remaining // 1)
-    used_points += take * 1
-    remaining -= take * 1
 
-    take = min(100, remaining // 2)
-    used_points += take * 2
-    remaining -= take * 2
+def get_base_stat(stat: CharacterCharacteristic) -> int:
+    if stat.HasField("detailed"):
+        return stat.detailed.base
+    if stat.HasField("usable"):
+        return stat.usable.base
+    return stat.value.total
 
-    take = min(100, remaining // 3)
-    used_points += take * 3
-    remaining -= take * 3
 
-    take = remaining // 4
-    used_points += take * 4
-    remaining -= take * 4
+def get_characteristic_point_cost(base: int) -> int:
+    return min(base // 100 + 1, 4)
 
-    return used_points
+
+def spend_characteristic_points(base: int, points: int) -> int:
+    while points >= (cost := get_characteristic_point_cost(base)):
+        points -= cost
+        base += 1
+    return base
 
 
 def build_characteristic_upgrade_request(
-    primary_element: EffectElement, points: int
-) -> CharacterCharacteristicUpgradeRequest:
-    match primary_element:
-        case EffectElement.STRENGTH:
-            return CharacterCharacteristicUpgradeRequest(strength=points)
-        case EffectElement.INTELLIGENCE:
-            return CharacterCharacteristicUpgradeRequest(intelligence=points)
-        case EffectElement.CHANCE:
-            return CharacterCharacteristicUpgradeRequest(chance=points)
-        case _:
-            return CharacterCharacteristicUpgradeRequest(agility=points)
+    primary_element: EffectElement,
+    characteristic_by_id: Mapping[int, CharacterCharacteristic],
+) -> CharacterCharacteristicUpgradeRequest | None:
+    """Keeps the current distribution and spends the unspent points on the primary element."""
+    stats_points = characteristic_by_id.get(CharacteristicEnum.STATS_POINTS)
+    if stats_points is None or any(
+        characteristic_id not in characteristic_by_id
+        for characteristic_id in UPGRADABLE_CHARACTERISTIC_BY_FIELD.values()
+    ):
+        return None
+    base_by_field = {
+        field: get_base_stat(characteristic_by_id[characteristic_id])
+        for field, characteristic_id in UPGRADABLE_CHARACTERISTIC_BY_FIELD.items()
+    }
+    field = ELEMENT_UPGRADE_FIELD.get(primary_element, "agility")
+    upgraded_base = spend_characteristic_points(base_by_field[field], get_stat_by_id(stats_points))
+    if upgraded_base == base_by_field[field]:
+        return None
+    base_by_field[field] = upgraded_base
+    return CharacterCharacteristicUpgradeRequest(**base_by_field)
