@@ -267,7 +267,7 @@ class LuaFightApi:
             return False
         assert cell is not None
         cell_data = MapReader().get_cell_data_by_cell_id(self.game_state.map.map_id, cell)
-        if not cell_data.mov or cell_data.nonWalkableDuringFight:
+        if not cell_data.movDuringFight:
             return False
         if cell in self.game_state.fight.invisible_enemy_cell_ids:
             return False
