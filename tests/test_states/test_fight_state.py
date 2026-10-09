@@ -10,6 +10,7 @@ from DBDofusUnity.datas.protos.non_obf.game.common_pb2 import (
     CharacterCharacteristic,
     CharacterCharacteristicDetailed,
     CharacterCharacteristics,
+    CharacterCharacteristicValue,
     EntityDisposition,
     FightCharacteristics,
     FightStartingPositions,
@@ -38,7 +39,7 @@ from src.core.bot.bot import Bot
 from src.core.frames.fight_frame import FightFrame
 from src.core.states.entity_state import FightActor
 from tests.fixtures.entities import make_fighter
-from tests.fixtures.game_state import set_game_state
+from tests.fixtures.game_state import GameStateContext, set_game_state
 
 
 class TestFightState:
@@ -659,4 +660,29 @@ class TestFightState:
                 base=base,
                 objects_and_mount_bonus=objects_and_mount_bonus,
             ),
+        )
+
+    def test_ferveur_targets_living_enemy_with_shield_effect(self, game_state_ctx: GameStateContext) -> None:
+        from src.core.engine.fights.attack.buff import get_valid_self_buff_spells_for_turn
+
+        game_state = game_state_ctx.game_state
+        set_game_state(
+            game_state, player_cell_id=79, enemy_cell_ids=[93], include_spell_ids=[], movement_point=0
+        )
+        game_state.fight.spells = [SpellItem(spell_id=14676, spell_level=1, available=True)]
+        game_state.fight.characteristic_by_id[CharacteristicEnum.ACTION_POINTS] = CharacterCharacteristic(
+            characteristic_id=CharacteristicEnum.ACTION_POINTS,
+            value=CharacterCharacteristicValue(total=2),
+        )
+        game_state.entity.actor_fight_by_id[0].life_point = 46
+        context = game_state.get_attack_context()
+        attack = game_state_ctx.attacker.find_best_attack_from_mp(context)
+
+        assert attack is not None
+        caster, spell, target = attack
+        assert caster == context.player_map_point
+        assert spell.spellId == 14676
+        assert target == MapPoint.from_cell_id(93)
+        assert any(
+            candidate.spellId == 14676 for candidate, _, _ in get_valid_self_buff_spells_for_turn(context)
         )
