@@ -1,4 +1,7 @@
-from character_management_pb2 import CharacterListEvent, CharacterSelectionRequest
+from collections.abc import Callable
+
+import pytest
+from character_management_pb2 import CharacterListEvent, CharacterSelectionEvent, CharacterSelectionRequest
 from google.protobuf.message import Message
 
 from ankama_launcher_emulator.interfaces.local_storage import PreferredCharacter
@@ -8,6 +11,10 @@ from DBDofusUnity.datas.protos.non_obf.connection.login_message_pb2 import (
     ServerInformation,
 )
 from DBDofusUnity.datas.protos.non_obf.game.common_pb2 import Character
+from DBDofusUnity.datas.protos.non_obf.game.contact_pb2 import (
+    ContactLookRequest,
+    FriendSetWarnOnConnectionRequest,
+)
 from src.controller.character_choice import (
     NEW_ACCOUNT_SERVER_ID,
     CharacterTarget,
@@ -96,3 +103,25 @@ class TestHandshakeCharacterSelection:
 
     def test_unknown_name_selects_the_first_character(self, runtime_bot: Bot) -> None:
         assert set(self._selected_ids(runtime_bot, "Gone")) == {1}
+
+    def test_post_selection_batch_matches_the_3_7_client(
+        self, runtime_bot: Bot, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        sent_messages: list[Message] = []
+        scheduled: list[Callable[[], None]] = []
+        runtime_bot.event_manager.on_send_game_callback = sent_messages.append
+        runtime_bot.event_manager.request_disconnect_callback = lambda: None
+
+        def schedule(_delay: object, func: Callable[[], None]) -> None:
+            scheduled.append(func)
+
+        monkeypatch.setattr(runtime_bot.handshake_behavior, "run_timer", schedule)
+
+        runtime_bot.handshake_behavior.run(ticket="ticket")
+        runtime_bot.event_manager.process_msg(
+            CharacterSelectionEvent(success=CharacterSelectionEvent.Success(character=_game_character(1, "Panda")))
+        )
+        scheduled[0]()
+
+        assert FriendSetWarnOnConnectionRequest(enable=False) in sent_messages
+        assert not any(isinstance(message, ContactLookRequest) for message in sent_messages)
