@@ -367,6 +367,8 @@ async def authenticate_next_available_account(
     profile = ScheduleProfileController().get_profile(profile_id)
     if profile is None:
         raise ValueError(f"Unknown schedule profile {profile_id}")
+    if profile.proxy_id is None:
+        raise ValueError(f"Account automation requires a proxy; schedule profile {profile_id} has none")
     proxy = ProxyController().get_proxy(profile.proxy_id)
     if proxy.rejected:
         raise ProxyRejectedError(f"Schedule profile {profile_id} already uses a rejected proxy")

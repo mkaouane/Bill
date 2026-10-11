@@ -20,7 +20,8 @@ class TimeSlot(BaseModel):
 
 class ScheduleProfile(BaseModel):
     name_fr: str
-    proxy_id: str
+    # None connects directly, without a proxy.
+    proxy_id: str | None = None
     slots_by_day: dict[str, list[TimeSlot]]
 
 

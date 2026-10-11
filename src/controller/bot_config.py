@@ -108,7 +108,7 @@ class BotConfigService(metaclass=Singleton):
         except LookupError as error:
             raise ValueError("This account no longer exists. Refresh the list.") from error
 
-    def resolve_bot_proxy(self, config: BotConfig) -> ProxyConfig:
+    def resolve_bot_proxy(self, config: BotConfig) -> ProxyConfig | None:
         if config.schedule_profile is None:
             raise ValueError("Bot config must have a schedule profile")
         profile = ScheduleProfileController().get_profile(config.schedule_profile)
@@ -116,10 +116,13 @@ class BotConfigService(metaclass=Singleton):
             raise RuntimeSetupError(
                 f"Unknown schedule profile: {config.schedule_profile}. Check schedule_profiles.json."
             )
+        if profile.proxy_id is None:
+            return None
         return ProxyController().get_proxy(profile.proxy_id)
 
-    def resolve_bot_http_proxy_url(self, config: BotConfig) -> str:
-        return build_http_proxy_url(self.resolve_bot_proxy(config))
+    def resolve_bot_http_proxy_url(self, config: BotConfig) -> str | None:
+        proxy = self.resolve_bot_proxy(config)
+        return None if proxy is None else build_http_proxy_url(proxy)
 
     def get_bot_http_proxy_url(self, login: str) -> str | None:
         config = self.get_bot_config(login)
@@ -127,8 +130,9 @@ class BotConfigService(metaclass=Singleton):
             return None
         return self.resolve_bot_http_proxy_url(config)
 
-    def resolve_bot_socks_proxy_url(self, config: BotConfig) -> str:
-        return build_socks_proxy_url(self.resolve_bot_proxy(config))
+    def resolve_bot_socks_proxy_url(self, config: BotConfig) -> str | None:
+        proxy = self.resolve_bot_proxy(config)
+        return None if proxy is None else build_socks_proxy_url(proxy)
 
     def remove_bot_config(self, login: str):
         def clear_config(record: BotRecord) -> None:

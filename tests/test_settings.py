@@ -14,6 +14,7 @@ from ankama_launcher_emulator.controller.paysafecard_pool import PaysafecardPool
 from ankama_launcher_emulator.interfaces.mail_account import ManualAccountConfig, SmailProAccountConfig
 from ankama_launcher_emulator.interfaces.schedule_profile import ProxyConfig, ScheduleProfile, TimeSlot
 from src.controller import settings as settings_module
+from src.controller.bot_config import BotConfig, BotConfigService
 from src.controller.settings import SettingsService
 from src.core.config import BehaviorSettings, GlobalSettings, JobPrioritySettings
 from src.core.bot.bot import Bot
@@ -203,6 +204,16 @@ def test_profiles_validate_cross_midnight_overlap_and_missing_proxy() -> None:
     assert controller.get_profile("night") == profile
     with pytest.raises(RuntimeSetupError):
         controller.save_profile("missing", profile.model_copy(update={"proxy_id": "missing"}), create=True)
+
+
+def test_profile_without_proxy_connects_directly() -> None:
+    profile = ScheduleProfile(name_fr="Direct", slots_by_day={"0": [TimeSlot(start="10:00", end="13:00")]})
+    ScheduleProfileController().save_profile("direct", profile, create=True)
+
+    assert ScheduleProfileController().get_profile("direct") == profile
+    config = BotConfig(schedule_profile="direct")
+    assert BotConfigService().resolve_bot_socks_proxy_url(config) is None
+    assert BotConfigService().resolve_bot_http_proxy_url(config) is None
 
 
 def test_pin_additions_preserve_existing_codes_and_reject_invalid_batch() -> None:

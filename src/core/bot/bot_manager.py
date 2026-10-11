@@ -133,7 +133,7 @@ class BotManager:
             return bot_config
         bot_config_service = BotConfigService()
         proxy = bot_config_service.resolve_bot_proxy(bot_config)
-        if not proxy.rejected:
+        if proxy is None or not proxy.rejected:
             return bot_config
 
         profiles = ScheduleProfileController().get_all_profiles()
@@ -145,6 +145,8 @@ class BotManager:
             profile_id
             for profile_id, profile in profiles.items()
             if profile_id != bot_config.schedule_profile
+            # Never move an account off a rejected proxy onto the direct connection.
+            if profile.proxy_id is not None
             if not ProxyController().get_proxy(profile.proxy_id).rejected
         ]
         if healthy_profile_ids:
@@ -314,6 +316,12 @@ class BotManager:
             if schedule_profile is None:
                 logger.warning(
                     "Banned account %s references unknown schedule profile %s; no proxy was quarantined",
+                    login,
+                    schedule_profile_id,
+                )
+            elif schedule_profile.proxy_id is None:
+                logger.warning(
+                    "Banned account %s uses direct schedule profile %s; no proxy was quarantined",
                     login,
                     schedule_profile_id,
                 )

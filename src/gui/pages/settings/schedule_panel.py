@@ -7,6 +7,8 @@ from src.controller.settings_deletion import delete_schedule
 from src.gui.pages.settings.settings_panel import SettingsPanel
 from src.gui.pages.settings.schedule_day_editor import ScheduleDayEditor
 
+DIRECT_CONNECTION_LABEL = "Direct (no proxy)"
+
 
 class ScheduleSettingsPanel(SettingsPanel):
     changed = pyqtSignal()
@@ -35,9 +37,11 @@ class ScheduleSettingsPanel(SettingsPanel):
             profiles, proxies = result
             self.entries = profiles
             self.proxy.clear()
-            self.proxy.addItems(sorted(proxies))
+            self.proxy.addItem(DIRECT_CONNECTION_LABEL, userData=None)
+            for proxy_id in sorted(proxies):
+                self.proxy.addItem(proxy_id, userData=proxy_id)
             self.selection.set_rows([
-                (identifier, (identifier, profile.name_fr, profile.proxy_id,
+                (identifier, (identifier, profile.name_fr, profile.proxy_id or DIRECT_CONNECTION_LABEL,
                     "\n".join(
                         f"{day}: " + ", ".join(
                             f"{slot.start}–{slot.end}" + (" (+1 day)" if slot.end < slot.start else "")
@@ -61,16 +65,16 @@ class ScheduleSettingsPanel(SettingsPanel):
         self.identifier.setReadOnly(profile is not None)
         self.name.setText(profile.name_fr if profile else "")
         if profile:
-            if self.proxy.findText(profile.proxy_id) < 0:
-                self.proxy.addItem(profile.proxy_id)
-            self.proxy.setCurrentText(profile.proxy_id)
+            if self.proxy.findData(profile.proxy_id) < 0:
+                self.proxy.addItem(profile.proxy_id or DIRECT_CONNECTION_LABEL, userData=profile.proxy_id)
+            self.proxy.setCurrentIndex(self.proxy.findData(profile.proxy_id))
         for index, widget in enumerate(self.days):
             widget.set_slots(profile.slots_by_day.get(str(index), []) if profile else [])
 
     def save(self) -> None:
         slots = {str(index): widget.values() for index, widget in enumerate(self.days)}
         profile = ScheduleProfile(
-            name_fr=self.name.text().strip(), proxy_id=self.proxy.currentText(), slots_by_day=slots
+            name_fr=self.name.text().strip(), proxy_id=self.proxy.currentData(), slots_by_day=slots
         )
         identifier = self.identifier.text().strip()
         create = self.selection.selected_key is None

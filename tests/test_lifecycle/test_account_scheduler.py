@@ -118,6 +118,23 @@ def test_pending_account_is_authenticated_before_registration() -> None:
         assert scheduler._next_operation(0) == _AuthOp("pending@example.com", "B", "B")
 
 
+def test_account_automation_never_uses_direct_schedule_profiles() -> None:
+    direct_profile = ScheduleProfile(name_fr="Direct", slots_by_day={})
+    scheduler = _scheduler(
+        {"A": direct_profile, "B": _profile("B")},
+        accounts_needing_auth=[_bot_record("direct@example.com", "A")],
+    )
+    mail_accounts = MagicMock()
+    mail_accounts.peek_next_available_email.return_value = "stored@example.com"
+    mail_accounts.load_bad_state_emails.return_value = set()
+
+    with (
+        patch("src.core.bot.lifecycle.account_scheduler.MailAccountController", return_value=mail_accounts),
+        patch.object(SettingsService, "get", return_value=GlobalSettings(enable_account_automation=True)),
+    ):
+        assert scheduler._next_operation(0) == _RegisterOp("B", "B")
+
+
 def test_register_operation_is_cancelled_during_shutdown() -> None:
     scheduler = _scheduler({"B": _profile("B")})
     operation_started = threading.Event()

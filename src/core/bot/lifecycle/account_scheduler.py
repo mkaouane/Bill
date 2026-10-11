@@ -135,6 +135,13 @@ class AccountScheduler:
                 raise RuntimeSetupError(
                     f"Unknown schedule profile: {account_profile_id}. Check schedule_profiles.json."
                 )
+            if account_profile.proxy_id is None:
+                logger.info(
+                    "account %s uses direct profile %s; account automation requires a proxy, skipping",
+                    account.email,
+                    account_profile_id,
+                )
+                continue
             account_proxy = self.proxy_controller.get_proxy(account_profile.proxy_id)
             if account_proxy.rejected:
                 logger.info(
@@ -157,6 +164,7 @@ class AccountScheduler:
             eligible_candidates = [
                 _RegisterOp(profile_id, profile.proxy_id)
                 for profile_id, profile in profiles_by_letter.items()
+                if profile.proxy_id is not None
                 if not self.proxy_controller.get_proxy(profile.proxy_id).rejected
                 if self._pool.has_quota_for(profile.proxy_id, 2, now)
                 if not self._pool.is_register_cooled_down(profile.proxy_id, now)
@@ -199,6 +207,7 @@ class AccountScheduler:
         rejected_profile = self.schedule_profile_controller.get_profile(profile_id)
         if rejected_profile is None:
             raise ValueError(f"Unknown schedule profile {profile_id}")
+        assert rejected_profile.proxy_id is not None, "Only proxied profiles run account automation"
         self.proxy_controller.record_rejection(rejected_profile.proxy_id)
         generated_account_logins = {
             account.email
@@ -220,6 +229,7 @@ class AccountScheduler:
             healthy_profile_ids = sorted(
                 candidate_profile_id
                 for candidate_profile_id, candidate_profile in profiles.items()
+                if candidate_profile.proxy_id is not None
                 if not self.proxy_controller.get_proxy(candidate_profile.proxy_id).rejected
             )
             for login in sorted(generated_account_logins):

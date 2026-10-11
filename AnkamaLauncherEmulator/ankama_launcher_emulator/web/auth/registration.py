@@ -529,6 +529,8 @@ async def _register_email(
     profile = ScheduleProfileController().get_profile(schedule_profile)
     if profile is None:
         raise ValueError(f"Unknown schedule profile {schedule_profile}")
+    if profile.proxy_id is None:
+        raise ValueError(f"Account automation requires a proxy; schedule profile {schedule_profile} has none")
     options = RegistrationOptions(
         email=email,
         password=DEFAULT_PASSWORD,

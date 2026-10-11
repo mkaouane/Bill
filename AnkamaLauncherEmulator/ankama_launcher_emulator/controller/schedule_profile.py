@@ -35,7 +35,8 @@ class ScheduleProfileController(metaclass=Singleton):
     def save_profile(self, profile_id: str, profile: ScheduleProfile, *, create: bool = False) -> None:
         if not profile_id.strip() or not profile.name_fr.strip():
             raise ValueError("Schedule identifier and name are required.")
-        ProxyController().get_proxy(profile.proxy_id)
+        if profile.proxy_id is not None:
+            ProxyController().get_proxy(profile.proxy_id)
         occupied: set[int] = set()
         for day, slots in profile.slots_by_day.items():
             if day not in {str(index) for index in range(7)}:
