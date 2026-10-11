@@ -216,6 +216,16 @@ def test_profile_without_proxy_connects_directly() -> None:
     assert BotConfigService().resolve_bot_http_proxy_url(config) is None
 
 
+@pytest.mark.parametrize("use_bot_config_json", [True, False])
+def test_unconfigured_account_defaults_to_socket_mode(
+    monkeypatch: pytest.MonkeyPatch, use_bot_config_json: bool
+) -> None:
+    monkeypatch.setattr(BotConfigService, "use_bot_config_json", use_bot_config_json)
+    monkeypatch.setattr(BotConfigService(), "_all_configs", {})
+
+    assert BotConfigService().get_bot_config("unknown-login").connection_mode == "socket"
+
+
 def test_pin_additions_preserve_existing_codes_and_reject_invalid_batch() -> None:
     pool = PaysafecardPoolController()
     pool.add_pins(["1111 2222 3333 4444"])

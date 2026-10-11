@@ -98,8 +98,8 @@ class SidebarItem(NavigationWidget):
 
         self._mode_combo = ComboBox(self)
         self._mode_combo.setFixedWidth(150)
-        self._mode_combo.addItem("Mitm", userData="mitm")
         self._mode_combo.addItem("Socket", userData="socket")
+        self._mode_combo.addItem("Mitm", userData="mitm")
         self._mode_combo.currentIndexChanged.connect(self._on_mode_changed)
         self.controls_layout.addWidget(self._mode_combo)
 
@@ -225,7 +225,7 @@ class SidebarItem(NavigationWidget):
 
     def _on_mode_changed(self) -> None:
         mode = self._mode_combo.currentData()
-        self.connection_mode_changed.emit(mode if mode else "mitm")
+        self.connection_mode_changed.emit(mode if mode else "socket")
 
     def on_click_play(self) -> None:
         self.bot_signals.play.emit(True)
